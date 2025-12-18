@@ -13,4 +13,4 @@ wget -nc -P "$WEIGHTS_DIR" https://github.com/IDEA-Research/GroundingDINO/releas
 echo "📥 Downloading GroundingDINO Config..."
 wget -nc -P "$WEIGHTS_DIR" https://raw.githubusercontent.com/IDEA-Research/GroundingDINO/main/groundingdino/config/GroundingDINO_SwinT_OGC.py
 
-echo "✅ All weights are ready in $WEIGHTS_DIR."
+echo "✅ All weights are ready in $WEIGHTS_DIR." 
