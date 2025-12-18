@@ -37,16 +37,19 @@ Ein fertig eingerichteter Docker-Container f√ºr Isaac ROS mit Nvblox, perfekt f√
 **To run the Grounding DINO and SAM node, follow these steps:**
 
 1. **Start the Container:**
+```bash
 ./scripts/start_isaac.sh
-2. **Install Dependencies (Run inside the container): This installs Python packages and compiles GroundingDINO.**
-./scripts/setup_dino.sh
-3. **Download Model Weights (Run on host or inside container): Downloads large model files to data/weights (ignored by git).**
-./scripts/download_weights.sh
-4. **Build** 
-colcon build --symlink-install --packages-select my_dino_package
-5. **Setup**
-source install/setup.bash
-6. **Run the Node:**
+```
+2. **Install Dependencies (Run inside the container): This installs Python packages and compiles GroundingDINO and download Model Weights (Run on host or inside container): Downloads large model files to data/weights (ignored by git):**
+```bash
+source scripts/start_dino.sh
+```
+3. **Run the Node:**
+```bash
 ros2 run my_dino_package dino_node
-7. **Change Parameter**
+```
+4. **Change Parameter**
+```bash
 ros2 param set /dino_node text_prompt "'name of the next object'"
+```
+
