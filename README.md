@@ -48,8 +48,5 @@ source scripts/start_dino.sh
 ```bash
 ros2 run my_dino_package dino_node
 ```
-4. **Change Parameter**
-```bash
-ros2 param set /dino_node text_prompt "'name of the next object'"
-```
+
 
