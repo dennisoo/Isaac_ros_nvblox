@@ -31,3 +31,18 @@ Ein fertig eingerichteter Docker-Container für Isaac ROS mit Nvblox, perfekt f�
     da sind einfach ein paar build related sachen drin einfach ignorieren
     5. **config**
     hier kommen später unsere .yml (oder was auch immer) Dateien rein um die Pipeline zu konfigurieren
+
+
+## DINO/SAM Setup (GroundingDINO & Segment Anything)
+**To run the Grounding DINO and SAM node, follow these steps:**
+
+1. **Start the Container:**
+./scripts/start_isaac.sh
+2. **Install Dependencies (Run inside the container): This installs Python packages and compiles GroundingDINO.**
+./scripts/setup_dino.sh
+3. **Download Model Weights (Run on host or inside container): Downloads large model files to data/weights (ignored by git).**
+./scripts/download_weights.sh
+4. **Run the Node:**
+ros2 run my_dino_package dino_node
+5. **Change Parameter**
+ros2 param set /dino_node text_prompt "'name of the next object'"
