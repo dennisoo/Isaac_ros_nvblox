@@ -24,6 +24,8 @@ docker run -it --rm \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -v "$PROJECT_DIR/config:/workspaces/isaac_ros-dev/config" \
     -v "$PROJECT_DIR/data:/workspaces/isaac_ros-dev/data" \
+    -v "$PROJECT_DIR/src:/workspaces/isaac_ros-dev/src" \
+    -v "$PROJECT_DIR/scripts:/workspaces/isaac_ros-dev/scripts" \
     -w /workspaces/isaac_ros-dev \
     "$IMAGE" \
     bash -c "source install/setup.bash && exec bash"
