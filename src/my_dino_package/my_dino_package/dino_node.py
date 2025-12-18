@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 import os
 import torch
+import sys
 
 # Imports for DINO & SAM
 from groundingdino.util.inference import load_model, predict
@@ -15,6 +16,8 @@ import supervision as sv
 
 # PATHS (inside container)
 DATA_DIR = "/workspaces/isaac_ros-dev/data/weights"
+CONFIG_FILE = "/workspaces/isaac_ros-dev/config/classes.txt"  # <--- External file path
+
 DINO_CONFIG = os.path.join(DATA_DIR, "GroundingDINO_SwinT_OGC.py")
 DINO_CHECKPOINT = os.path.join(DATA_DIR, "groundingdino_swint_ogc.pth")
 SAM_CHECKPOINT = os.path.join(DATA_DIR, "sam_vit_h_4b8939.pth")
@@ -23,8 +26,8 @@ class DinoNode(Node):
     def __init__(self):
         super().__init__('dino_node')
         
-        # --- STANDARD VOCABULARY ---
-        # GroundingDINO will search for ALL of these items simultaneously.
+        # --- LOAD VOCABULARY FROM FILE ---
+        # This calls the helper function defined below
         self.common_objects = self.load_classes_from_file(CONFIG_FILE)
         
         # Combine list into a single prompt string separated by dots
@@ -32,19 +35,17 @@ class DinoNode(Node):
 
         # ROS Parameters
         self.declare_parameter('text_prompt', default_prompt) 
-        
-        # Increased thresholds to reduce false positives with large vocabulary
-        self.declare_parameter('box_threshold', 0.50) 
-        self.declare_parameter('text_threshold', 0.40)
+        # Tweak thresholds for better stability with many classes
+        self.declare_parameter('box_threshold', 0.40) 
+        self.declare_parameter('text_threshold', 0.30)
         
         self.bridge = CvBridge()
 
         # --- 1. INTELLIGENT DEVICE DETECTION ---
-        self.target_device = "cpu" # Default fallback
+        self.target_device = "cpu" 
         if torch.cuda.is_available():
             try:
                 self.get_logger().info("CUDA found. Testing compatibility...")
-                # Simple dummy operation to check if GPU is actually accessible
                 dummy = torch.zeros(1).to("cuda")
                 _ = dummy + 1
                 self.target_device = "cuda"
@@ -59,6 +60,7 @@ class DinoNode(Node):
         self.get_logger().info("Loading Grounding DINO...")
         if not os.path.exists(DINO_CHECKPOINT):
             self.get_logger().error(f"Weights missing at {DINO_CHECKPOINT}")
+            # Exit cleanly if weights are missing
             return
 
         self.dino_model = load_model(DINO_CONFIG, DINO_CHECKPOINT)
@@ -79,7 +81,24 @@ class DinoNode(Node):
         self.pub_overlay = self.create_publisher(Image, '/dino_sam/result', 10)
         
         self.get_logger().info(f"Ready on {self.target_device}!")
-        self.get_logger().info(f"Vocabulary size: {len(self.common_objects)} objects")
+        self.get_logger().info(f"Loaded {len(self.common_objects)} classes from config.")
+
+
+    def load_classes_from_file(self, path):
+        """Reads the class list from a text file, one class per line."""
+        if not os.path.exists(path):
+            self.get_logger().warn(f"⚠️ Config file not found at {path}. Using fallback list.")
+            return ["person", "chair", "table", "door", "window"] # Fallback
+
+        try:
+            with open(path, 'r') as f:
+                # Read lines, strip whitespace, remove empty lines
+                classes = [line.strip() for line in f.readlines() if line.strip()]
+            self.get_logger().info(f"📄 Successfully read classes from {path}")
+            return classes
+        except Exception as e:
+            self.get_logger().error(f"❌ Error reading config file: {e}")
+            return ["person"] # Minimal fallback
 
     def callback(self, msg):
         try:
@@ -130,15 +149,14 @@ class DinoNode(Node):
             )
             
             # --- C. INTELLIGENT CLASS MAPPING ---
-            # DINO returns phrases like ['chair', 'chair', 'table'].
-            # We map unique phrases to unique IDs so they get different colors.
+            # Map unique phrases to unique IDs for coloring
             unique_phrases = list(set(phrases)) 
             class_ids = [unique_phrases.index(p) for p in phrases]
             
             detections = sv.Detections(
                 xyxy=boxes_xyxy,
                 mask=masks.cpu().numpy().squeeze(1),
-                class_id=np.array(class_ids) # Assign IDs for coloring
+                class_id=np.array(class_ids) 
             )
 
             # --- D. VISUALIZATION ---
@@ -147,7 +165,7 @@ class DinoNode(Node):
             # 2. Draw Boxes
             annotated_frame = self.box_annotator.annotate(scene=annotated_frame, detections=detections)
             
-            # 3. Draw Labels (Shows "chair 0.85")
+            # 3. Draw Labels
             labels = [
                 f"{phrase} {logit:.2f}"
                 for phrase, logit in zip(phrases, logits)
