@@ -1,0 +1,128 @@
+# Semantic Class Configuration
+# Jede Klasse bekommt eine eindeutige ID und Farbe
+
+semantic_classes:
+  # ID 0 ist reserviert für "unknown/background"
+  
+  # === PERSONEN ===
+  person:
+    id: 1
+    color: [255, 0, 0]      # Rot (RGB)
+    description: "Menschen"
+    
+  # === MÖBEL ===
+  chair:
+    id: 2
+    color: [0, 255, 0]      # Grün
+    description: "Stuhl"
+    
+  table:
+    id: 3
+    color: [0, 0, 255]      # Blau
+    description: "Tisch"
+    
+  sofa:
+    id: 4
+    color: [255, 255, 0]    # Gelb
+    description: "Sofa"
+    
+  bed:
+    id: 5
+    color: [255, 0, 255]    # Magenta
+    description: "Bett"
+    
+  desk:
+    id: 6
+    color: [0, 255, 255]    # Cyan
+    description: "Schreibtisch"
+    
+  # === RAUMTEILE ===
+  door:
+    id: 7
+    color: [128, 0, 0]      # Dunkelrot
+    description: "Tür"
+    
+  window:
+    id: 8
+    color: [0, 128, 0]      # Dunkelgrün
+    description: "Fenster"
+    
+  wall:
+    id: 9
+    color: [128, 128, 128]  # Grau
+    description: "Wand"
+    
+  # === ELEKTRONIK ===
+  monitor:
+    id: 10
+    color: [255, 128, 0]    # Orange
+    description: "Monitor/Bildschirm"
+    
+  keyboard:
+    id: 11
+    color: [128, 0, 255]    # Lila
+    description: "Tastatur"
+    
+  laptop:
+    id: 12
+    color: [0, 128, 255]    # Hellblau
+    description: "Laptop"
+    
+  tv:
+    id: 13
+    color: [255, 192, 203]  # Rosa
+    description: "Fernseher"
+    
+  # === AUFBEWAHRUNG ===
+  cabinet:
+    id: 14
+    color: [139, 69, 19]    # Braun
+    description: "Schrank"
+    
+  shelf:
+    id: 15
+    color: [210, 180, 140]  # Beige
+    description: "Regal"
+    
+  bookshelf:
+    id: 16
+    color: [160, 82, 45]    # Sienna
+    description: "Bücherregal"
+    
+  # === BELEUCHTUNG ===
+  lamp:
+    id: 17
+    color: [255, 255, 200]  # Hellgelb
+    description: "Lampe"
+    
+  # === PFLANZEN ===
+  plant:
+    id: 18
+    color: [34, 139, 34]    # Waldgrün
+    description: "Pflanze"
+    
+  # === SONSTIGES ===
+  box:
+    id: 19
+    color: [165, 42, 42]    # Rotbraun
+    description: "Kiste/Box"
+    
+  bottle:
+    id: 20
+    color: [0, 191, 255]    # Tiefblau
+    description: "Flasche"
+
+# Mapping-Einstellungen
+settings:
+  # Maximale Anzahl gleichzeitiger Klassen
+  max_classes: 50
+  
+  # Default-Farbe für unbekannte Objekte
+  unknown_color: [200, 200, 200]  # Hellgrau
+  
+  # Ob Instanz-IDs zusätzlich zu Klassen-IDs verwendet werden sollen
+  # z.B. chair_1, chair_2, etc.
+  use_instance_ids: true
+  
+  # Minimale Mask-Größe (Pixel) um als valide zu gelten
+  min_mask_size: 100

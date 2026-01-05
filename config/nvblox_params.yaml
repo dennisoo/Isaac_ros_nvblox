@@ -1,0 +1,35 @@
+/**: 
+  ros__parameters:
+    # Global settings
+    voxel_size:  0.05
+    
+    # Mapping
+    mesh_update_rate_hz: 5.0
+    esdf_update_rate_hz: 2.0
+    
+    # Integration
+    max_tsdf_update_hz: 10.0
+    max_color_update_hz:  5.0
+    max_mesh_update_hz:  5.0
+    
+    # TSDF integrator
+    tsdf_integrator_max_integration_distance_m: 5.0
+    tsdf_integrator_truncation_distance_vox: 4.0
+    
+    # Mesh integrator
+    mesh_integrator_min_weight:  0.0001
+    mesh_integrator_weld_vertices: false
+    
+    # Color integration
+    color_integration_enabled: true
+    
+    # Human/Mask integration für semantische Labels
+    human_esdf_update_rate_hz: 2.0
+    human_mesh_update_rate_hz: 2.0
+    
+    # Frames
+    global_frame: "odom"
+    pose_frame: "base_link"
+    
+    # QoS
+    use_sim_time:  true
