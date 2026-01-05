@@ -30,15 +30,24 @@ Ein fertig eingerichteter Docker-Container für Isaac ROS mit Nvblox, perfekt f�
     4. **install/build**
     da sind einfach ein paar build related sachen drin einfach ignorieren
     5. **config**
-
     hier kommen später unsere .yml (oder was auch immer) Dateien rein um die Pipeline zu konfigurieren
-Also wenn ihr den Nvidia cli ros container habt, müsst ihr folgendes tun:
-geht in den docker: isaac-ros activate
-dann sourcen sam dino holen und package builden: source scripts/start_dino.sh
-versionen downgraden aufgrund von konflikten:
-pip3 install --break-system-packages 'supervision==0.18.0'
-pip install --force-reinstall --break-system-packages "numpy<2"
-So jetzt runnen (sam/dino geht mesh noch nicht richtig liegt evtl. an rosbag, schaut das ihr die rosbag natürlich am richtigen path habt.)
-ros2 launch my_dino_package semantic_pipeline.launch.py \
-  bag_path:=/workspaces/isaac_ros-dev/bags/mein_lidar_dataset \
-  rate:=0.5
+
+
+## DINO/SAM Setup (GroundingDINO & Segment Anything)
+**To run the Grounding DINO and SAM node, follow these steps:**
+
+1. **Start the Container:**
+```bash
+./scripts/start_isaac.sh
+```
+2. **Install Dependencies (Run inside the container): This installs Python packages and compiles GroundingDINO and download Model Weights (Run on host or inside container): Downloads large model files to data/weights (ignored by git):**
+```bash
+source scripts/start_dino.sh
+```
+3. **Run the Node:**
+```bash
+ros2 run my_dino_package dino_node
+```
+
+
+
