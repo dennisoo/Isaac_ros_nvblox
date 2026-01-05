@@ -1,0 +1,18 @@
+# ROS 2 Build Ordner ignorieren (werden lokal generiert)
+data/*
+!data/.gitkeep
+install/*
+!install/.gitkeep
+build/*
+!build/.gitkeep
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# IDE Einstellungen (VS Code etc.)
+.vscode/
+.idea/
+
+# Systemdateien
+.DS_Store
