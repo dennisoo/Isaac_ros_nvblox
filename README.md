@@ -19,7 +19,7 @@ Also wenn ihr den Nvidia cli ros container habt, müsst ihr folgendes tun:
    pip3 install --break-system-packages 'supervision==0.18.0'
    pip install --force-reinstall --break-system-packages "numpy<2"
    ```
-4. Wenn ihr eine Aufnahme machen wollt (um die pipleine vorzubereiten tut dies)
+4. Wenn ihr eine Aufnahme machen wollt (um die pipleine vorzubereiten tut dies, das skript ist aber nur dafür da, falls bereits eine unsegmentierte Bag (die point bag) vorhanden ist (output ist die semantic bag)
     ```bash
     chmod +x scripts/preprocess_semantic_bag.sh
      ```
@@ -43,4 +43,5 @@ Wenn ihr was am skript ändert immer neu builden
 ```bash
 colcon build --packages-select my_dino_package && source install/setup.bash
 ```
+
 
