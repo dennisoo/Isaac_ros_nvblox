@@ -29,9 +29,15 @@ class SemanticToNvbloxBridge(Node):
         self.bridge = CvBridge()
         self.latest_camera_info = None
         
+        # Persistent segmentation - keep last known detections
+        self.persistent_mask = None
+        self.last_detection_time = None
+        self.persistence_timeout = 2.0  # Seconds to keep old detections
+        
         # Parameters
         self.declare_parameter('mode', 'single_mask')  # 'single_mask' or 'multi_class'
         self.declare_parameter('target_classes', 'chair,table,person')
+        self.declare_parameter('use_persistence', True)  # Keep last known segmentation
         
         # Subscriptions
         self.sub_semantic = self.create_subscription(
@@ -42,9 +48,9 @@ class SemanticToNvbloxBridge(Node):
         )
         
         # Publishers
-        self.pub_mask = self.create_publisher(Image, '/mask/image', 10)
-        self.pub_mask_info = self.create_publisher(CameraInfo, '/mask/camera_info', 10)
-        self.pub_colored_mask = self.create_publisher(Image, '/mask/colored', 10)
+        self.pub_mask = self.create_publisher(Image, '/semantic_mask', 10)
+        self.pub_mask_info = self.create_publisher(CameraInfo, '/semantic_mask/camera_info', 10)
+        self.pub_colored_mask = self.create_publisher(Image, '/semantic_mask/colored', 10)
         
         self.get_logger().info("Semantic to nvblox bridge ready")
 
@@ -61,16 +67,35 @@ class SemanticToNvbloxBridge(Node):
 
     def semantic_callback(self, msg):
         try:
-            # Convert semantic mono8 image
+            # Convert semantic mono8 image (contains class IDs)
             semantic_img = self.bridge.imgmsg_to_cv2(msg, desired_encoding="mono8")
             
             mode = self.get_parameter('mode').value
+            use_persistence = self.get_parameter('use_persistence').value
             
+            # Check if this frame has any detections
+            has_detections = np.any(semantic_img > 0)
+            
+            if has_detections:
+                # Update persistent semantic image with new detections
+                if use_persistence and self.persistent_mask is not None:
+                    # Merge: new detections overwrite old ones where they exist
+                    merged = self.persistent_mask.copy()
+                    merged[semantic_img > 0] = semantic_img[semantic_img > 0]
+                    self.persistent_mask = merged
+                else:
+                    self.persistent_mask = semantic_img.copy()
+                self.last_detection_time = self.get_clock().now()
+                self.get_logger().info(f"Detected objects, updating persistent mask", throttle_duration_sec=1.0)
+            elif use_persistence and self.persistent_mask is not None:
+                # No new detections - use persistent mask
+                semantic_img = self.persistent_mask
+                self.get_logger().debug("Using persistent mask (no new detections)", throttle_duration_sec=1.0)
+            
+            # Create output mask based on mode
             if mode == 'single_mask':
-                # Create combined binary mask for all target classes
                 mask = self.create_combined_mask(semantic_img)
             else:
-                # Create colored mask with class-specific colors
                 mask = self.create_colored_mask(semantic_img)
             
             # Publish mask
@@ -153,14 +178,22 @@ class SemanticToNvbloxBridge(Node):
         
         mask_msg = self.bridge.cv2_to_imgmsg(mask, encoding=encoding)
         mask_msg.header = original_msg.header
-        mask_msg.header.frame_id = "camera_0_color_optical_frame"
+        # Keep original frame_id from DINO (tugbot/camera_front/color)
+        # Don't override it!
         
         self.pub_mask.publish(mask_msg)
         
-        # Republish camera info
+        # Republish camera info with matching timestamp
         if self.latest_camera_info is not None:
-            cam_info = self.latest_camera_info
-            cam_info.header.stamp = original_msg.header.stamp
+            cam_info = CameraInfo()
+            cam_info.header = original_msg.header  # Use same header as mask
+            cam_info.height = self.latest_camera_info.height
+            cam_info.width = self.latest_camera_info.width
+            cam_info.distortion_model = self.latest_camera_info.distortion_model
+            cam_info.d = self.latest_camera_info.d
+            cam_info.k = self.latest_camera_info.k
+            cam_info.r = self.latest_camera_info.r
+            cam_info.p = self.latest_camera_info.p
             self.pub_mask_info.publish(cam_info)
 
 def main(args=None):
