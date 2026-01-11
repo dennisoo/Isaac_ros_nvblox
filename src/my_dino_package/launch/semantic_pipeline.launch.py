@@ -172,6 +172,7 @@ def generate_launch_description():
                     'pose_frame': 'base_link',
                     'use_tf_transforms': True,
                     'voxel_size': 0.05,
+
                     'mapping_type': 'static_tsdf',
                     'tick_period_ms': 10,
                     'integrate_depth_rate_hz': 40.0,

@@ -179,11 +179,11 @@ class SemanticToNvbloxBridge(Node):
         mask_msg = self.bridge.cv2_to_imgmsg(mask, encoding=encoding)
         mask_msg.header = original_msg.header
         # Keep original frame_id from DINO (tugbot/camera_front/color)
-        # Don't override it!
+        # Don't override it! test with nvblox
         
         self.pub_mask.publish(mask_msg)
         
-        # Republish camera info with matching timestamp
+        # Republ#sh camera info with matching timestamp
         if self.latest_camera_info is not None:
             cam_info = CameraInfo()
             cam_info.header = original_msg.header  # Use same header as mask
