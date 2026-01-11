@@ -16,6 +16,14 @@ else
     echo "✅ SAM Model already downloaded"
 fi
 
+# MobileSAM Model (faster alternative to SAM)
+if [ ! -f "$WEIGHTS_DIR/mobile_sam.pt" ]; then
+    echo "📥 Downloading MobileSAM Model..."
+    wget -P "$WEIGHTS_DIR" https://github.com/ChaoningZhang/MobileSAM/raw/master/weights/mobile_sam.pt
+else
+    echo "✅ MobileSAM Model already downloaded"
+fi
+
 # GroundingDINO Model
 if [ ! -f "$WEIGHTS_DIR/groundingdino_swint_ogc.pth" ]; then
     echo "📥 Downloading GroundingDINO Model..."

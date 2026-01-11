@@ -7,7 +7,7 @@ from launch. actions import DeclareLaunchArgument, ExecuteProcess, TimerAction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node, ComposableNodeContainer
 from launch_ros. descriptions import ComposableNode
-
+#backup from previous edits:
 def generate_launch_description():
     
     # === ARGUMENTE ===
@@ -18,7 +18,7 @@ def generate_launch_description():
     
     rate_arg = DeclareLaunchArgument(
         'rate',
-        default_value='5',  # Can be faster with preprocessed bag
+        default_value='0.5',  # Slow for DINO to keep up
         description='Playback rate'
     )
     
@@ -125,35 +125,35 @@ def generate_launch_description():
     #     output='screen'
     # )
     
-    # === DINO + SAM === DISABLED (using preprocessed bag with semantic topics)
-    # semantic_dino_node = Node(
-    #     package='my_dino_package',
-    #     executable='dino_nvblox_node',
-    #     name='semantic_dino_node',
-    #     output='screen',
-    #     parameters=[{
-    #         'use_sim_time': True,
-    #         'box_threshold': 0.35,
-    #         'text_threshold': 0.25,
-    #     }],
-    #     remappings=[
-    #         ('image', '/camera/color/image'),
-    #         ('camera_info', '/camera/color/camera_info'),
-    #     ]
-    # )
+    # === DINO + SAM ===
+    semantic_dino_node = Node(
+        package='my_dino_package',
+        executable='dino_nvblox_node',
+        name='semantic_dino_node',
+        output='screen',
+        parameters=[{
+            'use_sim_time': True,
+            'box_threshold': 0.35,
+            'text_threshold': 0.25,
+        }],
+        remappings=[
+            ('image', '/camera/color/image'),
+            ('camera_info', '/camera/color/camera_info'),
+        ]
+    )
     
-    # === SEMANTIC BRIDGE === DISABLED (not needed with preprocessed bag)
-    # semantic_bridge_node = Node(
-    #      package='my_dino_package',
-    #      executable='semantic_to_nvblox_bridge',
-    #      name='semantic_bridge',
-    #      output='screen',
-    #      parameters=[{
-    #          'use_sim_time': True,
-    #          'mode':  'single_mask',
-    #          'target_classes': 'person,chair,table,door,window',
-    #      }]
-    #  )
+    # === SEMANTIC BRIDGE === AUSKOMMENTIERT zum Testen
+    semantic_bridge_node = Node(
+         package='my_dino_package',
+         executable='semantic_to_nvblox_bridge',
+         name='semantic_bridge',
+         output='screen',
+         parameters=[{
+             'use_sim_time': True,
+             'mode':  'single_mask',
+             'target_classes': 'person,chair,table,door,window',
+         }]
+     )
     
     # === NVBLOX ===
     nvblox_container = ComposableNodeContainer(
@@ -172,6 +172,7 @@ def generate_launch_description():
                     'pose_frame': 'base_link',
                     'use_tf_transforms': True,
                     'voxel_size': 0.05,
+                    
                     'mapping_type': 'static_tsdf',
                     'tick_period_ms': 10,
                     'integrate_depth_rate_hz': 40.0,
@@ -228,8 +229,7 @@ def generate_launch_description():
             LaunchConfiguration('bag_path'),
             '--clock',
             '--rate', LaunchConfiguration('rate'),
-            # Added semantic topics for preprocessed bag
-            '--topics', '/camera/color/image', '/camera/color/camera_info', '/camera/depth/camera_info', '/camera/depth/image', '/semantic/image_rgb8', '/semantic/image_mono8', '/semantic/camera_info', '/tf', '/odom', '/imu', '/pointcloud'
+            '--topics', '/camera/color/image', '/camera/color/camera_info', '/camera/depth/camera_info', '/camera/depth/image', '/tf', '/odom', '/imu', '/pointcloud'
         ],
         output='screen',
     )
@@ -250,9 +250,9 @@ def generate_launch_description():
         TimerAction(period=1.0, actions=[static_tf_base_to_depth]),
         TimerAction(period=1.0, actions=[static_tf_base_to_lidar]),
         
-        # DINO and semantic bridge DISABLED (using preprocessed bag)
-        # TimerAction(period=1.5, actions=[semantic_dino_node]),
-        # TimerAction(period=1.5, actions=[semantic_bridge_node]),
+        # DINO and semantic bridge start after TFs
+        TimerAction(period=1.5, actions=[semantic_dino_node]),
+        TimerAction(period=1.5, actions=[semantic_bridge_node]),
         
         # nvblox starts after TFs are ready
         TimerAction(period=2.0, actions=[nvblox_container]),

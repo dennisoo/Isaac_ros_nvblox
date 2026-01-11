@@ -10,7 +10,15 @@ import yaml
 
 from groundingdino.util.inference import load_model, predict
 import groundingdino.datasets.transforms as T
-from segment_anything import sam_model_registry, SamPredictor
+
+# Try MobileSAM first, fallback to regular SAM
+try:
+    from mobile_sam import sam_model_registry as mobile_sam_registry, SamPredictor
+    USE_MOBILE_SAM = True
+except ImportError:
+    from segment_anything import sam_model_registry, SamPredictor
+    USE_MOBILE_SAM = False
+
 import supervision as sv
 
 # PATHS
@@ -20,6 +28,7 @@ SEMANTIC_CONFIG = "/workspaces/isaac_ros-dev/config/semantic_classes.yaml"
 
 DINO_CONFIG = os.path.join(DATA_DIR, "GroundingDINO_SwinT_OGC.py")
 DINO_CHECKPOINT = os.path.join(DATA_DIR, "groundingdino_swint_ogc.pth")
+MOBILE_SAM_CHECKPOINT = os.path.join(DATA_DIR, "mobile_sam.pt")
 SAM_CHECKPOINT = os.path.join(DATA_DIR, "sam_vit_h_4b8939.pth")
 
 class SemanticDinoNode(Node):
@@ -29,7 +38,11 @@ class SemanticDinoNode(Node):
         # --- LOAD SEMANTIC CONFIGURATION ---
         self.semantic_config = self.load_semantic_config(SEMANTIC_CONFIG)
         self.class_to_id = {name: info['id'] for name, info in self.semantic_config['semantic_classes'].items()}
-        self.class_to_color = {name: info['color'] for name, info in self.semantic_config['semantic_classes'].items()}
+        # Colors in YAML are RGB, but OpenCV uses BGR - convert them!
+        self.class_to_color = {
+            name: [info['color'][2], info['color'][1], info['color'][0]]  # RGB -> BGR
+            for name, info in self.semantic_config['semantic_classes'].items()
+        }
         
         # Build detection prompt from config
         self.common_objects = list(self.class_to_id.keys())
@@ -66,10 +79,22 @@ class SemanticDinoNode(Node):
         self.dino_model = load_model(DINO_CONFIG, DINO_CHECKPOINT)
         self.dino_model = self.dino_model.to(self.target_device)
         
-        self.get_logger().info("Loading SAM...")
-        self.sam = sam_model_registry["vit_h"](checkpoint=SAM_CHECKPOINT)
+        if USE_MOBILE_SAM:
+            self.get_logger().info("Loading MobileSAM (fast)...")
+            sam_checkpoint = MOBILE_SAM_CHECKPOINT
+            model_type = "vit_t"  # MobileSAM uses vit_t
+            self.sam = mobile_sam_registry[model_type](checkpoint=sam_checkpoint)
+        else:
+            self.get_logger().info("Loading SAM (standard)...")
+            sam_checkpoint = SAM_CHECKPOINT
+            model_type = "vit_h"
+            self.sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
+            
         self.sam.to(device=self.target_device)
         self.sam_predictor = SamPredictor(self.sam)
+        
+        sam_name = "MobileSAM" if USE_MOBILE_SAM else "SAM-ViT-H"
+        self.get_logger().info(f"✅ Using {sam_name} on {self.target_device}")
         
         # --- ANNOTATORS (supervision 0.18.0 API) ---
         # BoxAnnotator handles both boxes and labels in this version.
@@ -77,10 +102,10 @@ class SemanticDinoNode(Node):
         self.mask_annotator = sv.MaskAnnotator()
         # --- ROS SUBSCRIPTIONS ---
         self.sub_rgb = self.create_subscription(
-            Image, '/camera_0/color/image', self.callback, 10
+            Image, 'image', self.callback, 10
         )
         self.sub_camera_info = self.create_subscription(
-            CameraInfo, '/camera_0/color/camera_info', self.camera_info_callback, 10
+            CameraInfo, 'camera_info', self.camera_info_callback, 10
         )
         
         # --- ROS PUBLISHERS ---
@@ -256,7 +281,9 @@ class SemanticDinoNode(Node):
         mono8_msg.header = original_msg.header
         self.pub_semantic_mono8.publish(mono8_msg)
         
-        rgb8_msg = self.bridge.cv2_to_imgmsg(semantic_rgb8, encoding="bgr8")
+        # Convert BGR to RGB for nvblox (nvblox expects rgb8 encoding)
+        semantic_rgb8_converted = cv2.cvtColor(semantic_rgb8, cv2.COLOR_BGR2RGB)
+        rgb8_msg = self.bridge.cv2_to_imgmsg(semantic_rgb8_converted, encoding="rgb8")
         rgb8_msg.header = original_msg.header
         self.pub_semantic_rgb8.publish(rgb8_msg)
         
