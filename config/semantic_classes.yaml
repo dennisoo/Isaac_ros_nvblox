@@ -7,7 +7,7 @@ semantic_classes:
   # === PERSONEN ===
   person:
     id: 1
-    color: [255, 0, 0]      # Rot (RGB)
+    color: [0, 0, 0]      # Schwarz (BGR)
     description: "Menschen"
     
   # === MÖBEL ===
@@ -18,7 +18,7 @@ semantic_classes:
     
   table:
     id: 3
-    color: [0, 0, 255]      # Blau
+    color: [100, 120, 255]      # Blau
     description: "Tisch"
     
   sofa:
@@ -49,7 +49,7 @@ semantic_classes:
     
   wall:
     id: 9
-    color: [128, 128, 128]  # Grau
+    color: [0, 0, 255]  # Blau
     description: "Wand"
     
   # === ELEKTRONIK ===
@@ -102,27 +102,34 @@ semantic_classes:
     description: "Pflanze"
     
   # === SONSTIGES ===
-  box:
+  boxes:
     id: 19
     color: [165, 42, 42]    # Rotbraun
-    description: "Kiste/Box"
+    description: "Kisten"
     
   bottle:
     id: 20
     color: [0, 191, 255]    # Tiefblau
     description: "Flasche"
-
+  floor:
+    id: 21
+    color: [192, 192, 192]     # Silber
+    description: "Boden"  
+  box_rack:
+    id: 22
+    color: [255, 20, 147]      # Pink
+    description: "box_Lagerregal/Rack"
 # Mapping-Einstellungen
 settings:
   # Maximale Anzahl gleichzeitiger Klassen
   max_classes: 50
   
   # Default-Farbe für unbekannte Objekte
-  unknown_color: [200, 200, 200]  # Hellgrau
+  unknown_color: [125, 125, 0]  # gelb
   
   # Ob Instanz-IDs zusätzlich zu Klassen-IDs verwendet werden sollen
   # z.B. chair_1, chair_2, etc.
   use_instance_ids: true
   
   # Minimale Mask-Größe (Pixel) um als valide zu gelten
-  min_mask_size: 100
+  min_mask_size: 10

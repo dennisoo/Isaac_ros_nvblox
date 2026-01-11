@@ -15,4 +15,28 @@ __pycache__/
 .idea/
 
 # Systemdateien
-.DS_Store
+.DS_Store# Build logs
+log/
+
+# ROS bags
+bags/
+
+# Frame files
+*.gv
+*.pdf
+
+# Mesh and map files
+*.ply
+*.nvblx
+
+# Model files
+*.onnx
+*.plan
+*.pt
+
+# Assets
+isaac_ros_assets/
+
+# Segmentation tool
+segmentation_tool/
+__pycache__/
