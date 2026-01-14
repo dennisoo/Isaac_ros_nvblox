@@ -1,22 +1,20 @@
-# ROS 2 Build Ordner ignorieren (werden lokal generiert)
-data/*
+# ROS 2 Build artifacts
+build/
+install/
+log/
+data/
 !data/.gitkeep
-install/*
-!install/.gitkeep
-build/*
-!build/.gitkeep
 
-# Python Cache
+# Python cache
 __pycache__/
 *.pyc
 
-# IDE Einstellungen (VS Code etc.)
+# IDE configs
 .vscode/
 .idea/
 
-# Systemdateien
+# System files
 .DS_Store
-log/
 
 # ROS bags
 bags/
@@ -25,7 +23,7 @@ bags/
 *.gv
 *.pdf
 
-# Mesh and map files
+# Mesh & map files
 *.ply
 *.nvblx
 
@@ -34,9 +32,11 @@ bags/
 *.plan
 *.pt
 
+# Windows ADS
+*:Zone.Identifier
+
 # Assets
 isaac_ros_assets/
 
 # Segmentation tool
 segmentation_tool/
-__pycache__/
