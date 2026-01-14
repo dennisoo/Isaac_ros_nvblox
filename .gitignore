@@ -3,7 +3,6 @@ build/
 install/
 log/
 data/
-!data/.gitkeep
 
 # Python cache
 __pycache__/
