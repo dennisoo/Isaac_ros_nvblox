@@ -15,7 +15,7 @@ __pycache__/
 .idea/
 
 # Systemdateien
-.DS_Store# Build logs
+.DS_Store
 log/
 
 # ROS bags
