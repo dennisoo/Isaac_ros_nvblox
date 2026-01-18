@@ -1,0 +1,347 @@
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import Image, CameraInfo
+from cv_bridge import CvBridge
+import cv2
+import numpy as np
+import os
+import torch
+import yaml
+
+from groundingdino.util.inference import load_model, predict
+import groundingdino.datasets.transforms as T
+
+# Try MobileSAM first, fallback to regular SAM
+try:
+    from mobile_sam import sam_model_registry as mobile_sam_registry, SamPredictor
+    USE_MOBILE_SAM = True
+except ImportError:
+    from segment_anything import sam_model_registry, SamPredictor
+    USE_MOBILE_SAM = False
+
+import supervision as sv
+
+# PATHS
+DATA_DIR = "/workspaces/isaac_ros-dev/data/weights"
+CONFIG_FILE = "/workspaces/isaac_ros-dev/config/classes.txt"
+SEMANTIC_CONFIG = "/workspaces/isaac_ros-dev/config/semantic_classes.yaml"
+
+DINO_CONFIG = os.path.join(DATA_DIR, "GroundingDINO_SwinT_OGC.py")
+DINO_CHECKPOINT = os.path.join(DATA_DIR, "groundingdino_swint_ogc.pth")
+MOBILE_SAM_CHECKPOINT = os.path.join(DATA_DIR, "mobile_sam.pt")
+SAM_CHECKPOINT = os.path.join(DATA_DIR, "sam_vit_h_4b8939.pth")
+
+class SemanticDinoNode(Node):
+    def __init__(self):
+        super().__init__('semantic_dino_node')
+        
+        # --- LOAD SEMANTIC CONFIGURATION ---
+        self.semantic_config = self.load_semantic_config(SEMANTIC_CONFIG)
+        self.class_to_id = {name: info['id'] for name, info in self.semantic_config['semantic_classes'].items()}
+        # Colors in YAML are RGB, but OpenCV uses BGR - convert them!
+        self.class_to_color = {
+            name: [info['color'][2], info['color'][1], info['color'][0]]  # RGB -> BGR
+            for name, info in self.semantic_config['semantic_classes'].items()
+        }
+        
+        # Build detection prompt from config
+        self.common_objects = list(self.class_to_id.keys())
+        default_prompt = " .  ".join(self.common_objects)
+
+        # ROS Parameters
+        self.declare_parameter('text_prompt', default_prompt) 
+        self.declare_parameter('box_threshold', 0.25) 
+        self.declare_parameter('text_threshold', 0.20)
+        self.declare_parameter('use_instance_ids', True)
+        
+        self.bridge = CvBridge()
+        self.latest_camera_info = None
+        
+        # Instance tracking
+        self.instance_counters = {cls: 0 for cls in self.common_objects}
+
+        # --- DEVICE DETECTION ---
+        self.target_device = "cpu" 
+        if torch.cuda.is_available():
+            try:
+                dummy = torch.zeros(1).to("cuda")
+                _ = dummy + 1
+                self.target_device = "cuda"
+                self.get_logger().info("✅ Using CUDA")
+            except Exception as e:
+                self.get_logger().warn(f"⚠️ CUDA error: {e}. Using CPU.")
+                self.target_device = "cpu"
+        else:
+            self.get_logger().info("ℹ️ Using CPU")
+
+        # --- LOAD MODELS ---
+        self.get_logger().info("Loading Grounding DINO...")
+        self.dino_model = load_model(DINO_CONFIG, DINO_CHECKPOINT)
+        self.dino_model = self.dino_model.to(self.target_device)
+        
+        if USE_MOBILE_SAM:
+            self.get_logger().info("Loading MobileSAM (fast)...")
+            sam_checkpoint = MOBILE_SAM_CHECKPOINT
+            model_type = "vit_t"  # MobileSAM uses vit_t
+            self.sam = mobile_sam_registry[model_type](checkpoint=sam_checkpoint)
+        else:
+            self.get_logger().info("Loading SAM (standard)...")
+            sam_checkpoint = SAM_CHECKPOINT
+            model_type = "vit_h"
+            self.sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
+            
+        self.sam.to(device=self.target_device)
+        self.sam_predictor = SamPredictor(self.sam)
+        
+        sam_name = "MobileSAM" if USE_MOBILE_SAM else "SAM-ViT-H"
+        self.get_logger().info(f"✅ Using {sam_name} on {self.target_device}")
+        
+        # --- ANNOTATORS (supervision 0.18.0 API) ---
+        # BoxAnnotator handles both boxes and labels in this version.
+        self.box_annotator = sv.BoxAnnotator()
+        self.mask_annotator = sv.MaskAnnotator()
+        # --- ROS SUBSCRIPTIONS ---
+        self.sub_rgb = self.create_subscription(
+            Image, 'image', self.callback, 10
+        )
+        self.sub_camera_info = self.create_subscription(
+            CameraInfo, 'camera_info', self.camera_info_callback, 10
+        )
+        
+        # --- ROS PUBLISHERS ---
+        self.pub_overlay = self.create_publisher(Image, '/dino_sam/result', 10)
+        self.pub_semantic_mono8 = self.create_publisher(Image, '/semantic/image_mono8', 10)
+        self.pub_semantic_rgb8 = self.create_publisher(Image, '/semantic/image_rgb8', 10)
+        self.pub_semantic_info = self.create_publisher(CameraInfo, '/semantic/camera_info', 10)
+        
+        self.get_logger().info(f"Ready!  Loaded {len(self.common_objects)} semantic classes")
+
+    def load_semantic_config(self, path):
+        """Load semantic class configuration from YAML."""
+        if not os.path.exists(path):
+            self.get_logger().warn(f"⚠️ Semantic config not found:  {path}")
+            return {
+                'semantic_classes': {
+                    'person': {'id': 1, 'color': [255, 0, 0], 'description': 'Person'},
+                    'chair': {'id': 2, 'color': [0, 255, 0], 'description': 'Chair'}
+                },
+                'settings': {'max_classes': 50, 'unknown_color': [200, 200, 200]}
+            }
+        
+        with open(path, 'r') as f:
+            config = yaml.safe_load(f)
+        self.get_logger().info(f"📄 Loaded semantic config from {path}")
+        return config
+
+    def camera_info_callback(self, msg):
+        """Store camera info for republishing."""
+        self.latest_camera_info = msg
+
+    def callback(self, msg):
+        try:
+            cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+            prompt = self.get_parameter('text_prompt').value
+            
+            # --- GROUNDING DINO ---
+            transform = T.Compose([
+                T.RandomResize([800], max_size=1333),
+                T.ToTensor(),
+                T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+            ])
+            _, image_tensor = self.load_image_from_cv(cv_image, transform)
+            
+            boxes, logits, phrases = predict(
+                model=self.dino_model,
+                image=image_tensor,
+                caption=prompt,
+                box_threshold=self.get_parameter('box_threshold').value,
+                text_threshold=self.get_parameter('text_threshold').value,
+                device=self.target_device
+            )
+
+            if len(boxes) == 0:
+                self.publish_empty_semantic(msg, cv_image)
+                self.pub_overlay.publish(self.bridge.cv2_to_imgmsg(cv_image, encoding="bgr8"))
+                return
+
+            # --- SAM ---
+            self.sam_predictor.set_image(cv_image)
+            H, W, _ = cv_image.shape
+            
+            boxes_xyxy = boxes * torch.Tensor([W, H, W, H])
+            boxes_xyxy = self.box_convert(boxes=boxes_xyxy).numpy()
+
+            transformed_boxes = self.sam_predictor.transform.apply_boxes_torch(
+                torch.as_tensor(boxes_xyxy, device=self.sam.device), 
+                cv_image.shape[:2]
+            )
+            
+            masks, _, _ = self.sam_predictor.predict_torch(
+                point_coords=None,
+                point_labels=None,
+                boxes=transformed_boxes,
+                multimask_output=False,
+            )
+            
+            # --- SEMANTIC LABELING ---
+            # Übergebe Original-Bild für Hintergrund-Erhaltung im semantischen RGB
+            semantic_mono8, semantic_rgb8, class_ids = self.create_semantic_images(
+                masks.cpu().numpy().squeeze(1), phrases, (H, W), original_image=cv_image
+            )
+            
+            # --- PUBLISH SEMANTIC IMAGES ---
+            self.publish_semantic_images(semantic_mono8, semantic_rgb8, msg)
+            
+            # --- VISUALIZATION (supervision 0.18.0) ---
+            detections = sv.Detections(
+                xyxy=boxes_xyxy,
+                mask=masks.cpu().numpy().squeeze(1),
+                class_id=np.array(class_ids)
+            )
+
+            # Annotate with masks
+            annotated_frame = self.mask_annotator.annotate(
+                scene=cv_image.copy(), 
+                detections=detections
+            )
+            
+            # Annotate with bounding boxes
+            labels = [
+                f"{phrase} (ID:{self.class_to_id.get(phrase.lower(), 0)}) {logit:.2f}"
+                for phrase, logit in zip(phrases, logits)
+            ]
+
+            annotated_frame = self.box_annotator.annotate(
+                scene=annotated_frame,
+                detections=detections,
+                labels=labels
+            )
+            
+            # Add legend
+            annotated_frame = self.add_legend(annotated_frame, phrases)
+            
+            self.pub_overlay.publish(
+                self.bridge.cv2_to_imgmsg(annotated_frame, encoding="bgr8")
+            )
+
+        except Exception as e:
+            self.get_logger().error(f"Error in callback: {e}")
+            import traceback
+            self.get_logger().error(traceback.format_exc())
+
+    def create_semantic_images(self, masks, phrases, shape, original_image=None):
+        """Create semantic label images.
+        
+        Args:
+            masks: Array of segmentation masks
+            phrases: Detected class names
+            shape: (H, W) image shape
+            original_image: Original BGR camera image (for background preservation)
+        
+        Returns:
+            semantic_mono8: Mono image with class IDs
+            semantic_rgb8: RGB image with semantic colors (original image as background)
+            class_ids: List of class IDs
+        """
+        H, W = shape
+        semantic_mono8 = np.zeros((H, W), dtype=np.uint8)
+        
+        # WICHTIG: Start mit Original-Bild als Hintergrund für nvblox Color-Integration!
+        if original_image is not None:
+            semantic_rgb8 = original_image.copy()
+        else:
+            semantic_rgb8 = np.zeros((H, W, 3), dtype=np.uint8)
+        
+        class_ids = []
+        
+        for i, phrase in enumerate(phrases):
+            phrase_lower = phrase.lower()
+            
+            class_id = self.class_to_id.get(phrase_lower, 0)
+            color = self.class_to_color.get(phrase_lower, [200, 200, 200])
+            
+            class_ids.append(class_id)
+            
+            mask = masks[i].astype(bool)
+            
+            semantic_mono8[mask] = class_id
+            # Nur erkannte Objekte werden mit semantischer Farbe überschrieben!
+            semantic_rgb8[mask] = color
+            
+            self.get_logger().info(
+                f"Labeled {phrase} with ID {class_id} color={color}",
+                throttle_duration_sec=2.0
+            )
+        
+        return semantic_mono8, semantic_rgb8, class_ids
+
+    def publish_semantic_images(self, semantic_mono8, semantic_rgb8, original_msg):
+        """Publish semantic label images."""
+        mono8_msg = self.bridge.cv2_to_imgmsg(semantic_mono8, encoding="mono8")
+        mono8_msg.header = original_msg.header
+        self.pub_semantic_mono8.publish(mono8_msg)
+        
+        # Convert BGR to RGB for nvblox (nvblox expects rgb8 encoding)
+        semantic_rgb8_converted = cv2.cvtColor(semantic_rgb8, cv2.COLOR_BGR2RGB)
+        rgb8_msg = self.bridge.cv2_to_imgmsg(semantic_rgb8_converted, encoding="rgb8")
+        rgb8_msg.header = original_msg.header
+        self.pub_semantic_rgb8.publish(rgb8_msg)
+        
+        if self.latest_camera_info is not None:
+            cam_info = self.latest_camera_info
+            cam_info.header.stamp = original_msg.header.stamp
+            self.pub_semantic_info.publish(cam_info)
+
+    def publish_empty_semantic(self, original_msg, original_image):
+        """Publish semantic images when no objects detected.
+        Uses original image as background so nvblox still gets color data.
+        """
+        H, W, _ = original_image.shape
+        empty_mono = np.zeros((H, W), dtype=np.uint8)
+        # WICHTIG: Original-Bild als RGB senden, damit nvblox Farben hat!
+        self.publish_semantic_images(empty_mono, original_image, original_msg)
+
+    def add_legend(self, image, phrases):
+        """Add legend to image."""
+        unique_phrases = list(set(phrases))
+        
+        legend_height = len(unique_phrases) * 25 + 20
+        legend_width = 250
+        
+        overlay = image.copy()
+        cv2.rectangle(overlay, (10, 10), (10 + legend_width, 10 + legend_height), (0, 0, 0), -1)
+        image = cv2.addWeighted(overlay, 0.7, image, 0.3, 0)
+        
+        cv2.putText(image, "Detected Classes:", (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+        
+        for i, phrase in enumerate(sorted(unique_phrases)):
+            phrase_lower = phrase.lower()
+            color = self.class_to_color.get(phrase_lower, [200, 200, 200])
+            class_id = self.class_to_id.get(phrase_lower, 0)
+            
+            y_pos = 55 + i * 25
+            cv2.rectangle(image, (20, y_pos - 10), (40, y_pos + 5), tuple(color), -1)
+            cv2.putText(image, f"{phrase} (ID:  {class_id})", (50, y_pos), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
+        
+        return image
+
+    def load_image_from_cv(self, cv_image, transform):
+        from PIL import Image as PILImage
+        image_pil = PILImage.fromarray(cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB))
+        image_tensor = transform(image_pil, None)[0]
+        return image_pil, image_tensor
+
+    def box_convert(self, boxes):
+        cx, cy, w, h = boxes.unbind(-1)
+        b = [(cx - 0.5 * w), (cy - 0.5 * h), (cx + 0.5 * w), (cy + 0.5 * h)]
+        return torch.stack(b, dim=-1)
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = SemanticDinoNode()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__': 
+    main()
