@@ -50,8 +50,8 @@ class SemanticDinoNode(Node):
 
         # ROS Parameters
         self.declare_parameter('text_prompt', default_prompt) 
-        self.declare_parameter('box_threshold', 0.40) 
-        self.declare_parameter('text_threshold', 0.30)
+        self.declare_parameter('box_threshold', 0.25) 
+        self.declare_parameter('text_threshold', 0.20)
         self.declare_parameter('use_instance_ids', True)
         
         self.bridge = CvBridge()
