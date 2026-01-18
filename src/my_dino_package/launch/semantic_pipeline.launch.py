@@ -1,12 +1,44 @@
-"""
-Vollständige Pipeline:   cuVSLAM → DINO/SAM → nvblox
-Alle Package-Namen geprüft und korrekt!
-"""
+
+import sys
 from launch import LaunchDescription
-from launch. actions import DeclareLaunchArgument, ExecuteProcess, TimerAction
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, TimerAction, RegisterEventHandler, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node, ComposableNodeContainer
-from launch_ros. descriptions import ComposableNode
+from launch_ros.descriptions import ComposableNode
+from launch.event_handlers import OnProcessExit
+from launch.actions import EmitEvent
+from launch.events import Shutdown
+
+def save_mesh_as_glb(context):
+    import subprocess
+    import os
+    import trimesh
+    import tempfile
+    output_path = LaunchConfiguration('output_mesh').perform(context)
+    print("Saving mesh to:", output_path, " Conversion starting...")
+    temp_ply = tempfile.mktemp(suffix='.ply')
+    result = subprocess.run([
+        'ros2', 'service', 'call', 
+        '/nvblox_node/save_ply',
+        'nvblox_msgs/srv/FilePath', 
+        f'{{file_path: "{temp_ply}"}}'
+    ], capture_output=True, text=True)
+    if result.returncode != 0:
+        print("Error exporting mesh:", result.stderr)
+        return
+    print("Mesh exported to temporary PLY, converting to GLB...")
+    try:
+        mesh = trimesh.load(temp_ply)    
+        mesh.export(output_path, file_type='glb')
+        print("Mesh successfully saved as GLB to:", output_path)
+    except Exception as e:
+        print("Error during mesh conversion:", str(e))
+    finally:
+        if os.path.exists(temp_ply):
+            os.remove(temp_ply)    
+    print("Triggering global shutdown...")
+    return [EmitEvent(event=Shutdown(reason='Bag finished and mesh saved'))]        
+
 
 def generate_launch_description():
     
@@ -26,6 +58,11 @@ def generate_launch_description():
         'use_nvblox_human',
         default_value='false',
         description='Use NvbloxHumanNode instead of NvbloxNode'
+    )
+    output_mesh_arg = DeclareLaunchArgument(
+        'output_mesh',
+        default_value='/workspaces/isaac_ros-dev/meshes/semantic_mesh.glb',
+        description='Output mesh path (.glb)'
     )
     
     # Static TF: map -> odom (da Visual SLAM auskommentiert)
@@ -142,19 +179,6 @@ def generate_launch_description():
     #     ]
     # )
     
-    # === SEMANTIC BRIDGE === DISABLED (not needed with preprocessed bag)
-    # semantic_bridge_node = Node(
-    #      package='my_dino_package',
-    #      executable='semantic_to_nvblox_bridge',
-    #      name='semantic_bridge',
-    #      output='screen',
-    #      parameters=[{
-    #          'use_sim_time': True,
-    #          'mode':  'single_mask',
-    #          'target_classes': 'person,chair,table,door,window',
-    #      }]
-    #  )
-    
     # === NVBLOX ===
     nvblox_container = ComposableNodeContainer(
         name='nvblox_container',
@@ -189,7 +213,7 @@ def generate_launch_description():
                     'use_depth': True,
                     'use_color': True,
                     'use_lidar': True,
-                    'use_segmentation': False,  # Segmentation is for people removal, not coloring!
+                    'use_segmentation': False,
                     
                     # LiDAR settings (from SDF: 900 horizontal x 16 vertical samples)
                     'lidar_width': 900,
@@ -234,14 +258,21 @@ def generate_launch_description():
         ],
         output='screen',
     )
-    
+    save_mesh_on_exit = RegisterEventHandler(
+        OnProcessExit(
+            target_action=bag_player,
+            on_exit = [
+                OpaqueFunction(function=save_mesh_as_glb)
+            ]
+        )
+    )
     # === LAUNCH SEQUENCE ===
     # Bag player starts FIRST so /clock is available for use_sim_time nodes
     return LaunchDescription([
         bag_path_arg,
         rate_arg,
         use_nvblox_human_arg,
-        
+        output_mesh_arg,
         # Bag player starts first to publish /clock
         bag_player,
         
@@ -260,5 +291,6 @@ def generate_launch_description():
         
         # Processing (currently disabled)
         # visual_slam_container,  # Auskommentiert - Gazebo liefert perfekte Odometry
+        save_mesh_on_exit
        
     ])

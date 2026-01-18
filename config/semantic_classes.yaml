@@ -125,7 +125,7 @@ settings:
   max_classes: 50
   
   # Default-Farbe für unbekannte Objekte
-  unknown_color: [125, 125, 0]  # gelb
+  unknown_color: [125, 0, 200]  # Lila
   
   # Ob Instanz-IDs zusätzlich zu Klassen-IDs verwendet werden sollen
   # z.B. chair_1, chair_2, etc.
