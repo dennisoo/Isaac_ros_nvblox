@@ -6,7 +6,7 @@
 
 CONTAINER_NAME="isaac_workspace"
 
-echo "🚀 Starte Nvblox-Komponenten..."
+echo "Starte Nvblox-Komponenten..."
 
 # 1. Nvblox Node (im Hintergrund)
 docker exec -d $CONTAINER_NAME bash -c "source install/setup.bash && ros2 run nvblox_ros nvblox_node --ros-args -p use_sim_time:=true -p global_frame:=World -p pose_frame:=PandarXT_32_10hz -p base_frame:=PandarXT_32_10hz -p use_lidar:=true -p use_depth:=false -p use_color:=false -p lidar_max_range:=30.0 -r pointcloud:=/point_cloud"
@@ -17,11 +17,11 @@ docker exec -d $CONTAINER_NAME bash -c "source install/setup.bash && ros2 run tf
 # 3. RViz (im Hintergrund)
 docker exec -d $CONTAINER_NAME bash -c "source install/setup.bash && rviz2"
 
-echo "⏳ Warte 3 Sekunden für RViz..."
+echo "Warte 3 Sekunden für RViz..."
 sleep 3
 
 # 4. Bag abspielen (im Vordergrund)
-echo "▶️ Spiele Bag-Datei ab..."
+echo "Spiele Bag-Datei ab..."
 docker exec -it $CONTAINER_NAME bash -c "source install/setup.bash && ros2 bag play /workspaces/isaac_ros-dev/data/mein_lidar_dataset --clock"
 
-echo "✅ Fertig! Drücke Strg+C zum Beenden."
+echo "Fertig! Drücke Strg+C zum Beenden."
