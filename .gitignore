@@ -3,7 +3,8 @@ build/
 install/
 log/
 data/
-
+# Meshes
+meshes/
 # Python cache
 __pycache__/
 *.pyc
