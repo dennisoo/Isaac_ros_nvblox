@@ -12,12 +12,7 @@ from groundingdino.util.inference import load_model, predict
 import groundingdino.datasets.transforms as T
 
 # Try MobileSAM first, fallback to regular SAM
-try:
-    from mobile_sam import sam_model_registry as mobile_sam_registry, SamPredictor
-    USE_MOBILE_SAM = True
-except ImportError:
-    from segment_anything import sam_model_registry, SamPredictor
-    USE_MOBILE_SAM = False
+from segment_anything import sam_model_registry, SamPredictor
 
 import supervision as sv
 
@@ -50,8 +45,8 @@ class SemanticDinoNode(Node):
 
         # ROS Parameters
         self.declare_parameter('text_prompt', default_prompt) 
-        self.declare_parameter('box_threshold', 0.25) 
-        self.declare_parameter('text_threshold', 0.20)
+        self.declare_parameter('box_threshold', 0.40) 
+        self.declare_parameter('text_threshold', 0.30)
         self.declare_parameter('use_instance_ids', True)
         
         self.bridge = CvBridge()
@@ -67,34 +62,27 @@ class SemanticDinoNode(Node):
                 dummy = torch.zeros(1).to("cuda")
                 _ = dummy + 1
                 self.target_device = "cuda"
-                self.get_logger().info("✅ Using CUDA")
+                self.get_logger().info("Using CUDA")
             except Exception as e:
-                self.get_logger().warn(f"⚠️ CUDA error: {e}. Using CPU.")
+                self.get_logger().warn(f"CUDA error: {e}. Using CPU.")
                 self.target_device = "cpu"
         else:
-            self.get_logger().info("ℹ️ Using CPU")
+            self.get_logger().info("ℹUsing CPU")
 
         # --- LOAD MODELS ---
         self.get_logger().info("Loading Grounding DINO...")
         self.dino_model = load_model(DINO_CONFIG, DINO_CHECKPOINT)
         self.dino_model = self.dino_model.to(self.target_device)
-        
-        if USE_MOBILE_SAM:
-            self.get_logger().info("Loading MobileSAM (fast)...")
-            sam_checkpoint = MOBILE_SAM_CHECKPOINT
-            model_type = "vit_t"  # MobileSAM uses vit_t
-            self.sam = mobile_sam_registry[model_type](checkpoint=sam_checkpoint)
-        else:
-            self.get_logger().info("Loading SAM (standard)...")
-            sam_checkpoint = SAM_CHECKPOINT
-            model_type = "vit_h"
-            self.sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
+        self.get_logger().info("Loading SAM (standard)...")
+        sam_checkpoint = SAM_CHECKPOINT
+        model_type = "vit_h"
+        self.sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
             
         self.sam.to(device=self.target_device)
         self.sam_predictor = SamPredictor(self.sam)
         
-        sam_name = "MobileSAM" if USE_MOBILE_SAM else "SAM-ViT-H"
-        self.get_logger().info(f"✅ Using {sam_name} on {self.target_device}")
+        sam_name = "SAM-ViT-H"
+        self.get_logger().info(f"Using {sam_name} on {self.target_device}")
         
         # --- ANNOTATORS (supervision 0.18.0 API) ---
         # BoxAnnotator handles both boxes and labels in this version.
@@ -119,7 +107,7 @@ class SemanticDinoNode(Node):
     def load_semantic_config(self, path):
         """Load semantic class configuration from YAML."""
         if not os.path.exists(path):
-            self.get_logger().warn(f"⚠️ Semantic config not found:  {path}")
+            self.get_logger().warn(f"Semantic config not found:  {path}")
             return {
                 'semantic_classes': {
                     'person': {'id': 1, 'color': [255, 0, 0], 'description': 'Person'},
