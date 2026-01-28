@@ -126,60 +126,7 @@ def generate_launch_description():
         ],
         output='screen'
     )
-    
-    # === VISUAL SLAM (Composable) === für Simulation auskommentiert
-    # visual_slam_container = ComposableNodeContainer(
-    #     name='visual_slam_container',
-    #     namespace='',
-    #     package='rclcpp_components',
-    #     executable='component_container_mt',
-    #     composable_node_descriptions=[
-    #         ComposableNode(
-    #             package='isaac_ros_visual_slam',
-    #             plugin='nvidia::isaac_ros::visual_slam::VisualSlamNode',
-    #             name='visual_slam_node',
-    #             parameters=[{
-    #                 'use_sim_time': True,
-    #                 'enable_image_denoising': False,
-    #                 'rectified_images': True,
-    #                 'enable_slam_visualization': True,
-    #                 'enable_observations_view': True,
-    #                 'enable_landmarks_view': True,
-    #                 'map_frame': 'map',
-    #                 'odom_frame':  'odom',
-    #                 'base_frame': 'base_link',
-    #                 'enable_localization_n_mapping':  True,
-    #                 'publish_odom_to_base_tf': False,
-    #                 'publish_map_to_odom_tf': True,
-    #             }],
-    #             remappings=[
-    #                 ('visual_slam/image_0', '/camera/color/image'),
-    #                 ('visual_slam/camera_info_0', '/camera/color/camera_info'),
-    #                 ('visual_slam/imu', '/imu'),
-    #             ]
-    #         ),
-    #     ],
-    #     output='screen'
-    # )
-    
-    # === DINO + SAM === DISABLED (using preprocessed bag with semantic topics)
-    # semantic_dino_node = Node(
-    #     package='my_dino_package',
-    #     executable='dino_nvblox_node',
-    #     name='semantic_dino_node',
-    #     output='screen',
-    #     parameters=[{
-    #         'use_sim_time': True,
-    #         'box_threshold': 0.35,
-    #         'text_threshold': 0.25,
-    #     }],
-    #     remappings=[
-    #         ('image', '/camera/color/image'),
-    #         ('camera_info', '/camera/color/camera_info'),
-    #     ]
-    # )
-    
-    # === NVBLOX ===
+    # NVBLOX NODE CONTAINER
     nvblox_container = ComposableNodeContainer(
         name='nvblox_container',
         namespace='',
@@ -246,7 +193,7 @@ def generate_launch_description():
         output='screen'
     )
     
-    # === BAG PLAYER ===
+    # Bag Player
     bag_player = ExecuteProcess(
         cmd=[
             'ros2', 'bag', 'play',
@@ -266,8 +213,6 @@ def generate_launch_description():
             ]
         )
     )
-    # === LAUNCH SEQUENCE ===
-    # Bag player starts FIRST so /clock is available for use_sim_time nodes
     return LaunchDescription([
         bag_path_arg,
         rate_arg,
@@ -282,15 +227,8 @@ def generate_launch_description():
         TimerAction(period=1.0, actions=[static_tf_base_to_depth]),
         TimerAction(period=1.0, actions=[static_tf_base_to_lidar]),
         
-        # DINO and semantic bridge DISABLED (using preprocessed bag)
-        # TimerAction(period=1.5, actions=[semantic_dino_node]),
-        # TimerAction(period=1.5, actions=[semantic_bridge_node]),
-        
         # nvblox starts after TFs are ready
         TimerAction(period=2.0, actions=[nvblox_container]),
-        
-        # Processing (currently disabled)
-        # visual_slam_container,  # Auskommentiert - Gazebo liefert perfekte Odometry
         save_mesh_on_exit
        
     ])
