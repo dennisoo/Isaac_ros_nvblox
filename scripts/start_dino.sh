@@ -1,53 +1,88 @@
 #!/bin/bash
-# start_dino.sh - Complete setup: dependencies, weights, and build
+# start_dino.sh - The "One-Click" Setup Script
+# Includes AGGRESSIVE fixes for NumPy and PyTorch
 
-set -e  # Exit on error
+set -e
 
-echo "Starting full DINO setup..."
-
-# Get script directory and go to workspace root
+# Determine script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-WORKSPACE_DIR="$(dirname "$SCRIPT_DIR")"  # Parent of scripts/
-cd "$WORKSPACE_DIR" || exit 1
+WORKSPACE_DIR="$(dirname "$SCRIPT_DIR")"
+cd "$WORKSPACE_DIR"
 
-echo "Working directory: $(pwd)"
+echo "==========================================="
+echo "   🚀 STARTING DINO/SAM SETUP"
+echo "==========================================="
+echo "Working directory: $WORKSPACE_DIR"
 
 # 1. Make scripts executable
-echo "-------------------------------------------"
-echo "Making scripts executable..."
-chmod +x scripts/setup_dino.sh
-chmod +x scripts/download_weights.sh
+chmod +x scripts/*.sh
 
-# 2. Install Python dependencies
+# 2. Run basic setup
 echo "-------------------------------------------"
-echo "1/3: Installing Python dependencies..."
-if !  bash scripts/setup_dino.sh; then
-    echo "Failed to install dependencies!"
-    exit 1
-fi
+echo "1/4: Running base setup..."
+./scripts/setup_dino.sh || echo "⚠️  Base setup warning (ignoring)..."
 
-# 3. Download weights
+# --- AUTOMATIC FIXES START ---
 echo "-------------------------------------------"
-echo "2/3: Downloading weights..."
-if ! bash scripts/download_weights.sh; then
-    echo "Failed to download weights!"
-    exit 1
-fi
+echo "2/4: 🔧 FORCING CRITICAL FIXES..."
 
-# 4. Build ROS package
-echo "-------------------------------------------"
-echo "3/3: Building ROS package..."
-if ! colcon build --packages-select my_dino_package --symlink-install; then
-    echo "Build failed!"
-    exit 1
-fi
-echo "Completed Setup!"
+# [Fix A] INTELLIGENT PyTorch Downgrade
+echo "-> [Fix A] Checking GPU Compatibility..."
+NEEDS_DOWNGRADE="false"
 
-# If script was sourced, also source the setup file
-if [ "${BASH_SOURCE[0]}" != "${0}" ]; then
-    echo "Sourcing ROS environment..."
-    source install/setup.bash
-    echo "Environment ready!  You can now launch the pipeline."
+if command -v nvidia-smi &> /dev/null; then
+    CC_STR=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | head -n 1)
+    CC_INT=$(echo "$CC_STR" | tr -d '.')
+    if [[ "$CC_INT" =~ ^[0-9]+$ ]]; then
+        if [ "$CC_INT" -lt 75 ]; then
+            echo "   ⚠️  Old GPU ($CC_STR). Downgrade required."
+            NEEDS_DOWNGRADE="true"
+        else
+            echo "   ✅ Modern GPU ($CC_STR). Skipping PyTorch downgrade."
+        fi
+    else
+        NEEDS_DOWNGRADE="true" # Fallback
+    fi
 else
-    echo "NOTE: To apply ROS environment, run:  source install/setup.bash"
+    NEEDS_DOWNGRADE="false" # No GPU found or container limitation
 fi
+
+if [ "$NEEDS_DOWNGRADE" == "true" ]; then
+    echo "   🔧 Forcing PyTorch (CUDA 11.8)..."
+    pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118 --force-reinstall --break-system-packages
+fi
+
+# [Fix B] MobileSAM
+echo "-> [Fix B] Ensuring MobileSAM..."
+pip3 install git+https://github.com/ChaoningZhang/MobileSAM.git --break-system-packages --no-deps
+
+# [Fix C] Supervision
+echo "-> [Fix C] Locking Supervision to v0.18.0..."
+pip3 install "supervision==0.18.0" --force-reinstall --break-system-packages --no-deps
+
+# [Fix D] AGGRESSIVE NUMPY DOWNGRADE
+# We uninstall first to ensure no traces of 2.x remain.
+echo "-> [Fix D] 💣 NUKING NumPy 2.x and installing 1.x..."
+pip3 uninstall -y numpy --break-system-packages || true
+pip3 install "numpy<2.0.0" --force-reinstall --break-system-packages --no-deps
+
+# Verify NumPy version immediately
+echo "   🔎 Verifying NumPy version:"
+python3 -c "import numpy; print(f'   -> Installed: {numpy.__version__}')"
+
+# --- AUTOMATIC FIXES END ---
+
+# 3. Download Weights
+echo "-------------------------------------------"
+echo "3/4: Downloading Weights..."
+./scripts/download_weights.sh
+
+# 4. Build Workspace
+echo "-------------------------------------------"
+echo "4/4: Building ROS package..."
+colcon build --packages-select my_dino_package --symlink-install
+
+echo "-------------------------------------------"
+echo "✅ SETUP COMPLETE!"
+echo "   Please run your preprocessing script now."
+echo "==========================================="

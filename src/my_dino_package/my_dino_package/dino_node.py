@@ -4,9 +4,14 @@ from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge
 import cv2
 import numpy as np
+import sys
 import os
 import torch
 import yaml
+
+user_site = os.path.expanduser("~/.local/lib/python3.12/site-packages")
+if user_site not in sys.path:
+    sys.path.append(user_site)
 
 from groundingdino.util.inference import load_model, predict
 import groundingdino.datasets.transforms as T
@@ -45,15 +50,20 @@ class SemanticDinoNode(Node):
 
         # ROS Parameters
         self.declare_parameter('text_prompt', default_prompt) 
-        self.declare_parameter('box_threshold', 0.40) 
-        self.declare_parameter('text_threshold', 0.30)
+        self.declare_parameter('box_threshold', 0.25)  
+        self.declare_parameter('text_threshold', 0.25)
         self.declare_parameter('use_instance_ids', True)
+        
+        # NEW: Parameter for model selection
+        # Options: "mobile" (default), "vit_b", "vit_h"
+        self.declare_parameter('model_type', 'mobile') 
         
         self.bridge = CvBridge()
         self.latest_camera_info = None
         
-        # Instance tracking
-        self.instance_counters = {cls: 0 for cls in self.common_objects}
+        # Throttling to improve performance
+        self.frame_count = 0
+        self.process_every_n_frames = 5  # Process only every 5th frame
 
         # --- DEVICE DETECTION ---
         self.target_device = "cpu" 
@@ -67,19 +77,44 @@ class SemanticDinoNode(Node):
                 self.get_logger().warn(f"CUDA error: {e}. Using CPU.")
                 self.target_device = "cpu"
         else:
-            self.get_logger().info("ℹUsing CPU")
+            self.get_logger().info("ℹ Using CPU")
 
         # --- LOAD MODELS ---
         self.get_logger().info("Loading Grounding DINO...")
         self.dino_model = load_model(DINO_CONFIG, DINO_CHECKPOINT)
         self.dino_model = self.dino_model.to(self.target_device)
-        self.get_logger().info("Loading SAM (standard)...")
-        sam_checkpoint = SAM_CHECKPOINT
-        model_type = "vit_h"
-        self.sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
-            
+        
+        # SAM Model Selection Logic
+        model_selection = self.get_parameter('model_type').value.lower()
+        self.get_logger().info(f"Selected SAM Model: {model_selection}")
+        
+        if model_selection == "mobile":
+            # MobileSAM
+            # Note: Ensure MobileSAM is installed or in path
+            try:
+                from mobile_sam import sam_model_registry as mobile_registry
+                self.sam = mobile_registry["vit_t"](checkpoint=MOBILE_SAM_CHECKPOINT)
+                self.get_logger().info("Loaded MobileSAM (ViT-T)")
+            except ImportError:
+                self.get_logger().error("MobileSAM not installed! Falling back to standard SAM ViT-B.")
+                model_selection = "vit_b" # Fallback
+
+        if model_selection == "vit_b":
+             # Standard SAM Base
+             sam_checkpoint = os.path.join(DATA_DIR, "sam_vit_b_01ec64.pth")
+             self.sam = sam_model_registry["vit_b"](checkpoint=sam_checkpoint)
+             self.get_logger().info("Loaded Standard SAM (ViT-B)")
+             
+        elif model_selection == "vit_h":
+             # Standard SAM Huge
+             sam_checkpoint = SAM_CHECKPOINT
+             self.sam = sam_model_registry["vit_h"](checkpoint=sam_checkpoint)
+             self.get_logger().info("Loaded Standard SAM (ViT-H) - WARNING: Slow!")
+
         self.sam.to(device=self.target_device)
         self.sam_predictor = SamPredictor(self.sam)
+        
+        # ... (Rest of init: Annotators, Publishers, Subscribers) ...
         
         sam_name = "SAM-ViT-H"
         self.get_logger().info(f"Using {sam_name} on {self.target_device}")
@@ -126,6 +161,9 @@ class SemanticDinoNode(Node):
         self.latest_camera_info = msg
 
     def callback(self, msg):
+        self.frame_count += 1
+        if self.frame_count % self.process_every_n_frames != 0:
+            return
         try:
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
             prompt = self.get_parameter('text_prompt').value
@@ -224,23 +262,25 @@ class SemanticDinoNode(Node):
             masks: Array of segmentation masks
             phrases: Detected class names
             shape: (H, W) image shape
-            original_image: Original BGR camera image (for background preservation)
+            original_image: Original BGR camera image (used if background preservation is needed)
         
         Returns:
             semantic_mono8: Mono image with class IDs
-            semantic_rgb8: RGB image with semantic colors (original image as background)
+            semantic_rgb8: RGB image with semantic colors (Black background)
             class_ids: List of class IDs
         """
         H, W = shape
         semantic_mono8 = np.zeros((H, W), dtype=np.uint8)
         
-        # WICHTIG: Start mit Original-Bild als Hintergrund für nvblox Color-Integration!
-        if original_image is not None:
-            semantic_rgb8 = original_image.copy()
-        else:
-            semantic_rgb8 = np.zeros((H, W, 3), dtype=np.uint8)
+        # IMPORTANT: Initialize with black background (0,0,0) instead of original image.
+        # This ensures nvblox receives clean semantic data without muddying colors from the camera feed.
+        semantic_rgb8 = np.zeros((H, W, 3), dtype=np.uint8) 
         
         class_ids = []
+        
+        # Sort masks by size (descending) or simply iterate.
+        # To handle overlapping properly, you might want to sort by confidence or size.
+        # Here we use the default order but ensure we write over the black background.
         
         for i, phrase in enumerate(phrases):
             phrase_lower = phrase.lower()
@@ -252,8 +292,10 @@ class SemanticDinoNode(Node):
             
             mask = masks[i].astype(bool)
             
+            # Apply class ID to mono image
             semantic_mono8[mask] = class_id
-            # Nur erkannte Objekte werden mit semantischer Farbe überschrieben!
+            
+            # Apply color to RGB image (only where object is detected)
             semantic_rgb8[mask] = color
             
             self.get_logger().info(
