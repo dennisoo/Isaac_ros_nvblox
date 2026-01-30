@@ -411,10 +411,15 @@ Also wenn ihr den Nvidia cli ros container habt, müsst ihr folgendes tun:
    source scripts/start_dino.sh
    ```
    Was dieses Skript macht:
+
    Installiert OpenCV, Supervision, etc.
+
    Auto-Fix: Downgradet PyTorch automatisch, falls eine alte GPU (z.B. GTX 1080) erkannt wird
+
    Auto-Fix: Erzwingt numpy<2.0, um Abstürze mit ROS 2 Jazzy zu verhindern.
+   
    Lädt GroundingDINO und SAM Checkpoints.
+   
    Baut das Package my_dino_package.
 
 3. Wenn ihr eine Aufnahme machen wollt (um die pipleine vorzubereiten tut dies, das skript ist aber nur dafür da, falls bereits eine unsegmentierte Bag (die point bag) vorhanden ist (output ist die semantic bag)
@@ -429,7 +434,9 @@ Also wenn ihr den Nvidia cli ros container habt, müsst ihr folgendes tun:
  Interaktive Optionen:
  1. Modell: Ihr könnt zwischen MobileSAM (schnell, für Dev), ViT-B (ausgewogen) und ViT-H (beste Qualität, langsam) wählen.
  2. Threshold: Ihr könnt die Empfindlichkeit einstellen (Standard: 0.30).
+
     0.25: Findet alles, aber evtl. Halluzinationen.
+
     0.40: Sehr präzise, übersieht aber kleine Objekte.
     
 ## Weitere Ordner
