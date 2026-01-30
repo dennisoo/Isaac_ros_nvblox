@@ -16,7 +16,7 @@ Gehe zu https://www.docker.com/ und installiere die AMD64 version. Starte anschl
 # Getting Started with ROS
 ## Vorwort
 Was machen wir?
-Wir folgen folgendem Tutroial: https://nvidia-isaac-ros.github.io/getting_started/index.html
+Wir folgen folgendem Tutorial: https://nvidia-isaac-ros.github.io/getting_started/index.html
 Der Inhalt dieses Dokuments folgt diesem Tutorial, und gibt den Inhalt in vereinfachter weise wieder.
 
 ## Vorraussetzungen
@@ -35,7 +35,7 @@ Geht ins Windows-Terminal und gebt folgenden Befehl ein
 nvidia-smi
 ```
 
-Der Output sollte ungefähr so aussehen (Natürlich mit noch mehr infos die ich hier ausgelassen habe)
+Der Output sollte ungefähr so aussehen (Natürlich mit noch mehr Infos, die ich hier ausgelassen habe)
 
 ```
 Fri Dec 26 02:43:33 2025
@@ -397,7 +397,7 @@ Wenn ihr irgendwann nochmal in den docker wollt (wenn ihr draußen seid), müsst
 isaac-ros activate
 ```
 
-## DINO+SAM Setup
+## DINO+SAM Setup (Segmentation Pipeline)
 
 Also wenn ihr den Nvidia cli ros container habt, müsst ihr folgendes tun:
 
@@ -410,13 +410,14 @@ Also wenn ihr den Nvidia cli ros container habt, müsst ihr folgendes tun:
    ```bash
    source scripts/start_dino.sh
    ```
+   Was dieses Skript macht:
+   Installiert OpenCV, Supervision, etc.
+   Auto-Fix: Downgradet PyTorch automatisch, falls eine alte GPU (z.B. GTX 1080) erkannt wird
+   Auto-Fix: Erzwingt numpy<2.0, um Abstürze mit ROS 2 Jazzy zu verhindern.
+   Lädt GroundingDINO und SAM Checkpoints.
+   Baut das Package my_dino_package.
 
-3. Versionen downgraden aufgrund von konflikten:
-   ```bash
-   pip3 install --break-system-packages 'supervision==0.18.0'
-   pip install --force-reinstall --break-system-packages "numpy<2"
-   ```
-4. Wenn ihr eine Aufnahme machen wollt (um die pipleine vorzubereiten tut dies, das skript ist aber nur dafür da, falls bereits eine unsegmentierte Bag (die point bag) vorhanden ist (output ist die semantic bag)
+3. Wenn ihr eine Aufnahme machen wollt (um die pipleine vorzubereiten tut dies, das skript ist aber nur dafür da, falls bereits eine unsegmentierte Bag (die point bag) vorhanden ist (output ist die semantic bag)
     ```bash
     chmod +x scripts/preprocess_semantic_bag.sh
      ```
@@ -424,7 +425,13 @@ Also wenn ihr den Nvidia cli ros container habt, müsst ihr folgendes tun:
      ./scripts/preprocess_semantic_bag.sh \
      /workspaces/isaac_ros-dev/bags/tugbot_slam_bag_point \
      /workspaces/isaac_ros-dev/bags/tugbot_semantic_bag
-     ```
+      ```
+ Interaktive Optionen:
+ 1. Modell: Ihr könnt zwischen MobileSAM (schnell, für Dev), ViT-B (ausgewogen) und ViT-H (beste Qualität, langsam) wählen.
+ 2. Threshold: Ihr könnt die Empfindlichkeit einstellen (Standard: 0.30).
+    0.25: Findet alles, aber evtl. Halluzinationen.
+    0.40: Sehr präzise, übersieht aber kleine Objekte.
+    
 ## Weitere Ordner
 Erstellt noch im workspace Ordner einen bags Ordner.
 Nun erstellt einen meshes Ordner, in dem am Ende die gespeichterten glb Mesh files landen sollen.
