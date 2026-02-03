@@ -39,11 +39,11 @@ def save_mesh_as_glb(context):
 def generate_launch_description():
     bag_path_arg = DeclareLaunchArgument(
         'bag_path',
-        default_value='/workspaces/isaac_ros-dev/bags/my_rosbag_20260127_145659',
+        default_value='/workspaces/isaac_ros-dev/bags/tiago_semantic_bag',
     )
     rate_arg = DeclareLaunchArgument(
         'rate',
-        default_value='1',
+        default_value='10',
         description='Playback rate'
     )
     output_mesh_arg = DeclareLaunchArgument(
@@ -102,18 +102,22 @@ def generate_launch_description():
                     'use_lidar': True,
                     'use_segmentation': False,
                     # Map clearing
-                    'map_clearing_radius_m': 15.0,
+                    'map_clearing_radius_m': -1.0,
                     'map_clearing_frame_id': 'base_footprint',
+                    
+                    # Disable Map Decay (important for "keep all")
+                    'decay_tsdf_rate_hz': 0.0,
+                    'decay_dynamic_occupancy_rate_hz': 0.0,
                 }],
                 remappings=[
                     ('camera_0/depth/image', '/head_front_camera/depth/image_rect_raw'),
                     ('camera_0/depth/camera_info', '/head_front_camera/depth/camera_info'),
-                    ('camera_0/color/image', '/head_front_camera/color/image_raw'),
-                    ('camera_0/color/camera_info', '/head_front_camera/color/camera_info'),
+                    #('camera_0/color/image', '/head_front_camera/color/image_raw'),
+                    #('camera_0/color/camera_info', '/head_front_camera/color/camera_info'),
 
                     # We are not using segmentation for now
-                   # ('camera_0/color/image', '/semantic/image_rgb8'),
-                   # ('camera_0/color/camera_info', '/semantic/camera_info'),
+                    ('camera_0/color/image', '/semantic/image_rgb8'),
+                    ('camera_0/color/camera_info', '/semantic/camera_info'),
                     ('pointcloud', '/merged_cloud'),
                 ]
             ),
@@ -147,8 +151,7 @@ def generate_launch_description():
         output_mesh_arg,
         # Bag player starts first to publish /clock
         bag_player,
-        TimerAction(period=1.0, actions=[torso_base_to_lift]),
         TimerAction(period=1.0, actions=[nvblox_container]),
         # Processing (currently disabled)
-        #save_mesh_on_exit
+        save_mesh_on_exit
     ])
