@@ -1,3 +1,4 @@
+import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, TimerAction, RegisterEventHandler, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
@@ -6,6 +7,7 @@ from launch_ros.descriptions import ComposableNode
 from launch.event_handlers import OnProcessExit
 from launch.actions import EmitEvent
 from launch.events import Shutdown
+from ament_index_python.packages import get_package_share_directory
 
 def save_mesh_as_glb(context):
     import subprocess
@@ -37,6 +39,12 @@ def save_mesh_as_glb(context):
     print("Triggering global shutdown...")
     return [EmitEvent(event=Shutdown(reason='Bag finished and mesh saved'))]        
 def generate_launch_description():
+    nvblox_config = os.path.join(
+        get_package_share_directory('my_dino_package'),
+        'config',
+        'nvblox_params.yaml'
+    )
+
     bag_path_arg = DeclareLaunchArgument(
         'bag_path',
         default_value='/workspaces/isaac_ros-dev/bags/tiago_semantic_bag',
@@ -76,38 +84,7 @@ def generate_launch_description():
                 plugin='nvblox::NvbloxNode',
                 name='nvblox_node',
                 parameters=[{
-                    'use_sim_time': True,
-                    'global_frame': 'map',
-                    'pose_frame': 'base_footprint',
-
-
-                    'use_tf_transforms': True,
-                    'voxel_size': 0.05,
-
-                    'mapping_type': 'static_tsdf',
-                    'tick_period_ms': 10,
-                    'integrate_depth_rate_hz': 40.0,
-                    'integrate_color_rate_hz': 5.0,
-                    'update_mesh_rate_hz': 5.0,
-                    'update_esdf_rate_hz': 10.0,
-                    
-                    # ESDF
-                    'esdf_2d': True,
-                    'esdf_2d_min_height': 0.0,
-                    'esdf_2d_max_height': 2.0,
-                    
-                    # Inputs
-                    'use_depth': True,
-                    'use_color': True,
-                    'use_lidar': True,
-                    'use_segmentation': False,
-                    # Map clearing
-                    'map_clearing_radius_m': -1.0,
-                    'map_clearing_frame_id': 'base_footprint',
-                    
-                    # Disable Map Decay (important for "keep all")
-                    'decay_tsdf_rate_hz': 0.0,
-                    'decay_dynamic_occupancy_rate_hz': 0.0,
+                    nvblox_config,
                 }],
                 remappings=[
                     ('camera_0/depth/image', '/head_front_camera/depth/image_rect_raw'),
