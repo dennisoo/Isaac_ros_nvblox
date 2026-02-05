@@ -1,10 +1,10 @@
 /**: 
   ros__parameters:
     # Global settings
-    voxel_size:  0.05
+    voxel_size:  0.03
     
     # Mapping
-    mesh_update_rate_hz: 5.0
+    mesh_update_rate_hz: 2.0
     esdf_update_rate_hz: 2.0
     
     # Integration
@@ -13,12 +13,12 @@
     max_mesh_update_hz:  5.0
     
     # TSDF integrator
-    tsdf_integrator_max_integration_distance_m: 5.0
+    tsdf_integrator_max_integration_distance_m: 3.5
     tsdf_integrator_truncation_distance_vox: 4.0
     
     # Mesh integrator
-    mesh_integrator_min_weight:  0.0001
-    mesh_integrator_weld_vertices: false
+    mesh_integrator_min_weight:  0.3
+    mesh_integrator_weld_vertices: true
     
     # Color integration
     color_integration_enabled: true
