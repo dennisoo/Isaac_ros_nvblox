@@ -1,0 +1,49 @@
+/**:
+  ros__parameters:
+    # --- GLOBAL SETTINGS ---
+    voxel_size: 0.03
+    use_tf_transforms: true
+    use_sim_time: true
+
+    # --- MAPPING TYPE ---
+    mapping_type: static_tsdf
+    
+    # --- PERFORMANCE TUNING ---
+    tick_period_ms: 10
+    integrate_depth_rate_hz: 40.0
+    integrate_color_rate_hz: 5.0
+    integrate_lidar_rate_hz: 40.0
+    update_mesh_rate_hz: 1.0       
+    update_esdf_rate_hz: 1.0       
+    
+    # --- TSDF INTEGRATOR (The "Wall Makers") ---
+    tsdf_integrator_max_integration_distance_m: 3.5  # IMPORTANT for quality
+    tsdf_integrator_truncation_distance_vox: 4.0
+    
+    # --- MESH INTEGRATOR (The "Drawer") ---
+    mesh_integrator_min_weight: 0.5       # IMPORTANT against noise
+    mesh_integrator_weld_vertices: true   
+    
+    # --- ESDF (Obstacle Map) ---
+    esdf_2d: true
+    esdf_2d_min_height: 0.0
+    esdf_2d_max_height: 2.0
+
+    # --- INPUTS ---
+    use_depth: true
+    use_color: true
+    use_lidar: true
+    use_segmentation: false  # Currently false, matching your launch file logic
+
+    # --- MAP CLEARING ---
+    map_clearing_radius_m: -1.0
+    map_clearing_frame_id: "base_footprint"
+
+    # --- FRAMES (SLAM SUPPORT) ---
+    global_frame: "map"
+    pose_frame: "base_footprint"
+
+    # --- MAP DECAY ---
+    # Keep at 0.0 so old parts of the map do not disappear over time.
+    decay_tsdf_rate_hz: 0.0
+    decay_dynamic_occupancy_rate_hz: 0.0
