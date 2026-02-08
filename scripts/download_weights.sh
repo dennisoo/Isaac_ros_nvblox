@@ -46,7 +46,7 @@ if [ ! -f "$DATA_DIR/mobile_sam.pt" ]; then
     echo "Downloading MobileSAM weights..."
     wget -q https://github.com/ChaoningZhang/MobileSAM/raw/master/weights/mobile_sam.pt -P "$DATA_DIR"
 else
-    echo "✔ MobileSAM already present."
+    echo "MobileSAM already present."
 fi
 
-echo "✅ All weights ready!"
+echo "All weights ready!"
