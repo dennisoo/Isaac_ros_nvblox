@@ -1,14 +1,15 @@
 import rclpy
-from rclpy.node import Node
-from rclpy.qos import qos_profile_sensor_data
-from sensor_msgs.msg import Image, CameraInfo
-from cv_bridge import CvBridge
 import cv2
 import numpy as np
 import sys
 import os
 import torch
 import yaml
+from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
+from sensor_msgs.msg import Image, CameraInfo
+from cv_bridge import CvBridge
+from ament_index_python.packages import get_package_share_directory # <--- WICHTIG für dynamische Pfade
 
 user_site = os.path.expanduser("~/.local/lib/python3.12/site-packages")
 if user_site not in sys.path:
@@ -22,10 +23,8 @@ from segment_anything import sam_model_registry, SamPredictor
 
 import supervision as sv
 
-# PATHS
+# PATHS (Weights bleiben statisch, Config wird dynamisch geladen)
 DATA_DIR = "/workspaces/isaac_ros-dev/data/weights"
-CONFIG_FILE = "/workspaces/isaac_ros-dev/config/classes.txt"
-SEMANTIC_CONFIG = "/workspaces/isaac_ros-dev/config/semantic_classes.yaml"
 
 DINO_CONFIG = os.path.join(DATA_DIR, "GroundingDINO_SwinT_OGC.py")
 DINO_CHECKPOINT = os.path.join(DATA_DIR, "groundingdino_swint_ogc.pth")
@@ -36,8 +35,20 @@ class SemanticDinoNode(Node):
     def __init__(self):
         super().__init__('semantic_dino_node')
         
-        # --- LOAD SEMANTIC CONFIGURATION ---
-        self.semantic_config = self.load_semantic_config(SEMANTIC_CONFIG)
+        # --- LOAD SEMANTIC CONFIGURATION DYNAMICALLY ---
+        # Sucht den Pfad zum installierten Paket 'my_dino_package'
+        try:
+            package_share_directory = get_package_share_directory('my_dino_package')
+            semantic_config_path = os.path.join(package_share_directory, 'config', 'semantic_classes.yaml')
+            self.get_logger().info(f"Loading semantic config from: {semantic_config_path}")
+        except Exception as e:
+            self.get_logger().error(f"Could not find package 'my_dino_package'. Error: {e}")
+            # Fallback path (optional, falls lokal entwickelt wird)
+            semantic_config_path = "/workspaces/isaac_ros-dev/src/Isaac_ros_nvblox/src/my_dino_package/config/semantic_classes.yaml"
+
+        self.semantic_config = self.load_semantic_config(semantic_config_path)
+        
+        # --- PARSE CONFIG ---
         self.class_to_id = {name: info['id'] for name, info in self.semantic_config['semantic_classes'].items()}
         # Colors in YAML are RGB, but OpenCV uses BGR - convert them!
         self.class_to_color = {
@@ -64,7 +75,7 @@ class SemanticDinoNode(Node):
         
         # Throttling to improve performance
         self.frame_count = 0
-        self.process_every_n_frames = 1  # Process only every 5th frame
+        self.process_every_n_frames = 1  # Process every frame (change to 5 for speed)
 
         # --- DEVICE DETECTION ---
         self.target_device = "cpu" 
@@ -91,7 +102,6 @@ class SemanticDinoNode(Node):
         
         if model_selection == "mobile":
             # MobileSAM
-            # Note: Ensure MobileSAM is installed or in path
             try:
                 from mobile_sam import sam_model_registry as mobile_registry
                 self.sam = mobile_registry["vit_t"](checkpoint=MOBILE_SAM_CHECKPOINT)
@@ -115,15 +125,13 @@ class SemanticDinoNode(Node):
         self.sam.to(device=self.target_device)
         self.sam_predictor = SamPredictor(self.sam)
         
-        # ... (Rest of init: Annotators, Publishers, Subscribers) ...
-        
         sam_name = "SAM-ViT-H"
         self.get_logger().info(f"Using {sam_name} on {self.target_device}")
         
         # --- ANNOTATORS (supervision 0.18.0 API) ---
-        # BoxAnnotator handles both boxes and labels in this version.
         self.box_annotator = sv.BoxAnnotator()
         self.mask_annotator = sv.MaskAnnotator()
+        
         # --- ROS SUBSCRIPTIONS ---
         self.sub_rgb = self.create_subscription(
             Image, 'image', self.callback, qos_profile_sensor_data
@@ -211,28 +219,29 @@ class SemanticDinoNode(Node):
             )
             
             # --- SEMANTIC LABELING ---
-            # Übergebe Original-Bild für Hintergrund-Erhaltung im semantischen RGB
             semantic_mono8, semantic_rgb8, class_ids = self.create_semantic_images(
-                masks.cpu().numpy().squeeze(1), phrases, (H, W), original_image=cv_image
+                masks.cpu().numpy().squeeze(1), 
+                phrases, 
+                logits,  
+                (H, W), 
+                original_image=cv_image
             )
             
             # --- PUBLISH SEMANTIC IMAGES ---
             self.publish_semantic_images(semantic_mono8, semantic_rgb8, msg)
             
-            # --- VISUALIZATION (supervision 0.18.0) ---
+            # --- VISUALIZATION ---
             detections = sv.Detections(
                 xyxy=boxes_xyxy,
                 mask=masks.cpu().numpy().squeeze(1),
                 class_id=np.array(class_ids)
             )
 
-            # Annotate with masks
             annotated_frame = self.mask_annotator.annotate(
                 scene=cv_image.copy(), 
                 detections=detections
             )
             
-            # Annotate with bounding boxes
             labels = [
                 f"{phrase} (ID:{self.class_to_id.get(phrase.lower(), 0)}) {logit:.2f}"
                 for phrase, logit in zip(phrases, logits)
@@ -244,7 +253,6 @@ class SemanticDinoNode(Node):
                 labels=labels
             )
             
-            # Add legend
             annotated_frame = self.add_legend(annotated_frame, phrases)
             
             self.pub_overlay.publish(
@@ -256,54 +264,57 @@ class SemanticDinoNode(Node):
             import traceback
             self.get_logger().error(traceback.format_exc())
 
-    def create_semantic_images(self, masks, phrases, shape, original_image=None):
-        """Create semantic label images.
+    def create_semantic_images(self, masks, phrases, logits, shape, original_image=None):
+        """Create semantic label images using Max-Confidence Arbitration.
         
         Args:
             masks: Array of segmentation masks
             phrases: Detected class names
+            logits: Confidence scores for each detection
             shape: (H, W) image shape
-            original_image: Original BGR camera image (used if background preservation is needed)
-        
-        Returns:
-            semantic_mono8: Mono image with class IDs
-            semantic_rgb8: RGB image with semantic colors (Black background)
-            class_ids: List of class IDs
+            original_image: Original BGR camera image
         """
         H, W = shape
         semantic_mono8 = np.zeros((H, W), dtype=np.uint8)
         
-        # IMPORTANT: Initialize with black background (0,0,0) instead of original image.
-        # This ensures nvblox receives clean semantic data without muddying colors from the camera feed.
+        # Initialize with black background
         semantic_rgb8 = np.zeros((H, W, 3), dtype=np.uint8) 
         
+        # --- NEW: CONFIDENCE MAP ---
+        # Keeps track of the highest score per pixel to prevent overwriting
+        # high-confidence detections with low-confidence noise.
+        confidence_map = np.zeros((H, W), dtype=np.float32)
+
         class_ids = []
         
-        # Sort masks by size (descending) or simply iterate.
-        # To handle overlapping properly, you might want to sort by confidence or size.
-        # Here we use the default order but ensure we write over the black background.
-        
+        # Iterate through all detected objects
         for i, phrase in enumerate(phrases):
             phrase_lower = phrase.lower()
             
             class_id = self.class_to_id.get(phrase_lower, 0)
             color = self.class_to_color.get(phrase_lower, [200, 200, 200])
+            score = float(logits[i]) # The probability/confidence of this object
             
             class_ids.append(class_id)
             
             mask = masks[i].astype(bool)
             
-            # Apply class ID to mono image
-            semantic_mono8[mask] = class_id
+            # --- LOGIC: HIGH CONFIDENCE WINS ---
+            # We look for pixels that belong to the current mask AND
+            # where the new score is higher than the existing score in the confidence_map.
             
-            # Apply color to RGB image (only where object is detected)
-            semantic_rgb8[mask] = color
+            # 1. Where is the mask active?
+            # 2. Where is the new score higher than what was there before?
+            update_mask = mask & (score > confidence_map)
             
-            self.get_logger().info(
-                f"Labeled {phrase} with ID {class_id} color={color}",
-                throttle_duration_sec=2.0
-            )
-        
+            # Update the image ONLY at these "better" pixels
+            if np.any(update_mask):
+                semantic_mono8[update_mask] = class_id
+                semantic_rgb8[update_mask] = color
+                
+                # IMPORTANT: Update the confidence map with the new high score
+                confidence_map[update_mask] = score
+            
         return semantic_mono8, semantic_rgb8, class_ids
 
     def publish_semantic_images(self, semantic_mono8, semantic_rgb8, original_msg):
@@ -324,9 +335,7 @@ class SemanticDinoNode(Node):
             self.pub_semantic_info.publish(cam_info)
 
     def publish_empty_semantic(self, original_msg, original_image):
-        """Publish semantic images when no objects detected.
-        Uses original image as background so nvblox still gets color data.
-        """
+        """Publish semantic images when no objects detected."""
         H, W, _ = original_image.shape
         empty_mono = np.zeros((H, W), dtype=np.uint8)
         # WICHTIG: Original-Bild als RGB senden, damit nvblox Farben hat!
