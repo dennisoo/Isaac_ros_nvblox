@@ -13,8 +13,8 @@
     integrate_depth_rate_hz: 40.0
     integrate_color_rate_hz: 5.0
     integrate_lidar_rate_hz: 40.0
-    update_mesh_rate_hz: 1.0       
-    update_esdf_rate_hz: 1.0       
+    update_mesh_rate_hz: 5.0       
+    update_esdf_rate_hz: 10.0     
     
     # --- TSDF INTEGRATOR (The "Wall Makers") ---
     tsdf_integrator_max_integration_distance_m: 3.5  # IMPORTANT for quality
@@ -33,7 +33,7 @@
     use_depth: true
     use_color: true
     use_lidar: true
-    use_segmentation: false  # Currently false, matching your launch file logic
+    use_segmentation: false #this option is not used in this project, but it is available in nvblox for other use cases
 
     # --- MAP CLEARING ---
     map_clearing_radius_m: -1.0
@@ -44,6 +44,5 @@
     pose_frame: "base_footprint"
 
     # --- MAP DECAY ---
-    # Keep at 0.0 so old parts of the map do not disappear over time.
     decay_tsdf_rate_hz: 0.0
     decay_dynamic_occupancy_rate_hz: 0.0

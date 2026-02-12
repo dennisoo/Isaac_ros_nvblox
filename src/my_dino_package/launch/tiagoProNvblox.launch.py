@@ -47,11 +47,11 @@ def generate_launch_description():
 
     bag_path_arg = DeclareLaunchArgument(
         'bag_path',
-        default_value='/workspaces/isaac_ros-dev/bags/tiago_semantic_bag',
+        default_value='/workspaces/isaac_ros-dev/bags/tiago_semantic_bag_new',
     )
     rate_arg = DeclareLaunchArgument(
         'rate',
-        default_value='10',
+        default_value='1',
         description='Playback rate'
     )
     output_mesh_arg = DeclareLaunchArgument(
