@@ -36,7 +36,7 @@ elif [ "$choice" == "2" ]; then
     echo "-> Selected: SAM ViT-B (Balanced)"
 else
     MODEL_TYPE="mobile"
-    PLAY_RATE="0.5"
+    PLAY_RATE="0.25"
     echo "-> Selected: MobileSAM (Fast)"
 fi
 
