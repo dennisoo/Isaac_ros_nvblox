@@ -9,7 +9,7 @@ set -e
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 # Kill old lingering processes to free VRAM before starting
-echo "🧹 Cleaning up old processes..."
+echo "Cleaning old processes..."
 pkill -f dino_nvblox_node || true
 sleep 1
 
@@ -26,6 +26,7 @@ echo "  3) SAM ViT-H (Slowest - Best Quality)"
 echo ""
 read -p "Your choice [1-3]: " choice
 
+
 if [ "$choice" == "3" ]; then
     MODEL_TYPE="vit_h"
     PLAY_RATE="0.05"
@@ -36,7 +37,7 @@ elif [ "$choice" == "2" ]; then
     echo "-> Selected: SAM ViT-B (Balanced)"
 else
     MODEL_TYPE="mobile"
-    PLAY_RATE="0.25"
+    PLAY_RATE="0.5"
     echo "-> Selected: MobileSAM (Fast)"
 fi
 
@@ -112,12 +113,24 @@ ros2 run my_dino_package dino_nvblox_node --ros-args \
 DINO_PID=$!
 echo "DINO PID: $DINO_PID"
 
-# Wait briefly for the model to load
-if [ "$MODEL_TYPE" == "mobile" ]; then
-    sleep 5
-else
-    echo "Waiting for heavy model to load..."
-    sleep 10
+# Wait for the model to actually finish loading (timeout 120s)
+# Check if the node publishes on its output topic (only exists after Ready!)
+echo "Waiting for DINO/SAM node to be ready..."
+TIMEOUT=120
+ELAPSED=0
+while [ $ELAPSED -lt $TIMEOUT ]; do
+    # Node publishes /semantic/image_mono8 only after full init
+    if ros2 topic info /semantic/image_mono8 2>/dev/null | grep -q "Publisher count: 1"; then
+        echo " DINO/SAM node is ready! (${ELAPSED}s)"
+        break
+    fi
+    sleep 2
+    ELAPSED=$((ELAPSED + 2))
+    echo "  ... waiting (${ELAPSED}s / ${TIMEOUT}s)"
+done
+
+if [ $ELAPSED -ge $TIMEOUT ]; then
+    echo "Timeout waiting for DINO node. Continuing anyway..."
 fi
 
 # --- 4. START RECORDING ---

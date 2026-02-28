@@ -4,6 +4,10 @@
 
 set -e
 
+# gitconfig fix - redirect HOME so git never touches the mounted /home/admin/.gitconfig
+export HOME=/tmp/fakehome
+mkdir -p "$HOME"
+
 # Determine script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 WORKSPACE_DIR="$(dirname "$SCRIPT_DIR")"
@@ -52,21 +56,36 @@ if [ "$NEEDS_DOWNGRADE" == "true" ]; then
     pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118 --force-reinstall --break-system-packages
 fi
 
-# [Fix B] MobileSAM
-echo "-> [Fix B] Ensuring MobileSAM..."
-pip3 install git+https://github.com/ChaoningZhang/MobileSAM.git --break-system-packages --no-deps
+# [Fix B] MobileSAM - only if missing
+echo "-> [Fix B] Checking MobileSAM..."
+if ! python3 -c "import mobile_sam" 2>/dev/null; then
+    echo "   Installing MobileSAM..."
+    pip3 install git+https://github.com/ChaoningZhang/MobileSAM.git --break-system-packages --no-deps
+else
+    echo "   MobileSAM already installed. ✓"
+fi
 
-# [Fix C] Supervision
-echo "-> [Fix C] Locking Supervision to v0.18.0..."
-pip3 install "supervision==0.18.0" --force-reinstall --break-system-packages --no-deps
+# [Fix C] Supervision - only if wrong version
+echo "-> [Fix C] Checking Supervision..."
+if ! python3 -c "import supervision; assert supervision.__version__=='0.18.0'" 2>/dev/null; then
+    echo "   Installing Supervision 0.18.0..."
+    pip3 install "supervision==0.18.0" --force-reinstall --break-system-packages --no-deps
+else
+    echo "   Supervision 0.18.0 already installed. ✓"
+fi
 
-# [Fix D] AGGRESSIVE NUMPY DOWNGRADE
-# We uninstall first to ensure no traces of 2.x remain.
-echo "-> [Fix D] NUKING NumPy 2.x and installing 1.x..."
-pip3 uninstall -y numpy --break-system-packages || true
-pip3 install "numpy<2.0.0" --force-reinstall --break-system-packages --no-deps
+# [Fix D] NumPy - only if >=2.0
+echo "-> [Fix D] Checking NumPy version..."
+NP_MAJOR=$(python3 -c "import numpy; print(numpy.__version__.split('.')[0])" 2>/dev/null || echo "0")
+if [ "$NP_MAJOR" -ge 2 ] || [ "$NP_MAJOR" -eq 0 ]; then
+    echo "   NumPy $NP_MAJOR.x detected, downgrading to 1.x..."
+    pip3 uninstall -y numpy --break-system-packages || true
+    pip3 install "numpy<2.0.0" --break-system-packages --no-deps
+else
+    echo "   NumPy 1.x already installed. ✓"
+fi
 
-# Verify NumPy version immediately
+# Verify NumPy version
 echo "Verifying NumPy version:"
 python3 -c "import numpy; print(f'   -> Installed: {numpy.__version__}')"
 

@@ -3,14 +3,10 @@
 
 set -e
 
-# Define paths
-# (Assuming script is run from workspace root via start_dino.sh, or directly from scripts/)
-if [ -d "data/weights" ]; then
-    DATA_DIR="data/weights"
-else
-    # Fallback if run from scripts/ dir
-    DATA_DIR="../data/weights"
-fi
+# Define paths (use absolute path based on script location)
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+WORKSPACE_DIR="$(dirname "$SCRIPT_DIR")"
+DATA_DIR="$WORKSPACE_DIR/data/weights"
 mkdir -p "$DATA_DIR"
 
 echo "Downloading weights to $DATA_DIR..."

@@ -33,6 +33,7 @@
     use_depth: true
     use_color: true
     use_lidar: true
+    use_lidar_motion_compensation: false
     use_segmentation: false #this option is not used in this project, but it is available in nvblox for other use cases
 
     # --- MAP CLEARING ---

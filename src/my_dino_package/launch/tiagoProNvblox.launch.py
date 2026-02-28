@@ -11,9 +11,18 @@ from ament_index_python.packages import get_package_share_directory
 
 def save_mesh_as_glb(context):
     import subprocess
+    import sys
     import os
-    import trimesh
+    import site
+    import importlib
     import tempfile
+    try:
+        import trimesh
+    except ImportError:
+        subprocess.run([sys.executable, '-m', 'pip', 'install', '--break-system-packages', 'trimesh[easy]'], check=True)
+        importlib.invalidate_caches()
+        site.main()
+        import trimesh
     output_path = LaunchConfiguration('output_mesh').perform(context)
     print("Saving mesh to:", output_path, " Conversion starting...")
     temp_ply = tempfile.mktemp(suffix='.ply')
@@ -83,9 +92,9 @@ def generate_launch_description():
                 package='nvblox_ros',
                 plugin='nvblox::NvbloxNode',
                 name='nvblox_node',
-                parameters=[{
+                parameters=[
                     nvblox_config,
-                }],
+                ],
                 remappings=[
                     ('camera_0/depth/image', '/head_front_camera/depth/image_rect_raw'),
                     ('camera_0/depth/camera_info', '/head_front_camera/depth/camera_info'),
