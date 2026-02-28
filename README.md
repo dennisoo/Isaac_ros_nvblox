@@ -426,21 +426,30 @@ Once you have the NVIDIA CLI ROS container, follow these steps:
    ```bash
    source scripts/start_dino.sh
    ```
-3. If you want to preprocess a recording (to prepare the pipeline), do the following. This script is only needed if you already have an unsegmented bag (input) and want to produce a semantic bag (output):
+
+3. Versionen downgraden aufgrund von konflikten:
+   ```bash
+   pip3 install --break-system-packages 'supervision==0.18.0'
+   pip install --force-reinstall --break-system-packages "numpy<2"
+   ```
+4. Wenn ihr eine Aufnahme machen wollt (um die pipleine vorzubereiten tut dies, das skript ist aber nur dafür da, falls bereits eine unsegmentierte Bag (die point bag) vorhanden ist (output ist die semantic bag)
     ```bash
     chmod +x scripts/preprocess_semantic_bag.sh
      ```
      ```bash
      ./scripts/preprocess_semantic_bag.sh \
-      /workspaces/isaac_ros-dev/bags/my_rosbag_20260202_185940 \
-      /workspaces/isaac_ros-dev/bags/tiago_semantic_bag
+     /workspaces/isaac_ros-dev/bags/tugbot_slam_bag_point \
+     /workspaces/isaac_ros-dev/bags/tugbot_semantic_bag
      ```
+## Weitere Ordner
+Erstellt noch im workspace Ordner einen bags Ordner.
+Nun erstellt einen meshes Ordner, in dem am Ende die gespeichterten glb Mesh files landen sollen.
+## Pipeline ausführen
 
-
-Now run (SAM/DINO works, mesh may not work correctly yet — possibly due to the rosbag. Make sure your rosbag is at the correct path):
+So jetzt runnen (sam/dino geht mesh noch nicht richtig liegt evtl. an rosbag, schaut das ihr die rosbag natürlich am richtigen path habt.):
 
 ```bash
-ros2 launch my_dino_package tiagoProNvblox.launch.py   bag_path:=/workspaces/isaac_ros-dev/bags/tiago_semantic_bag   rate:=1
+ros2 launch my_dino_package semantic_pipeline.launch.py   bag_path:=/workspaces/isaac_ros-dev/bags/tugbot_semantic_bag_test/   rate:=5
 ```
 
 If you change anything in the scripts, always rebuild:
