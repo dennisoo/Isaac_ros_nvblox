@@ -353,10 +353,9 @@ FROM \${BASE_IMAGE}
 ENV ISAAC_ROS_WS=/workspaces/isaac_ros-dev
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN sudo apt-get update && \
-    sudo apt-get install -y ros-jazzy-isaac-ros-nvblox && \
-    rosdep update && \
-    rosdep install isaac_ros_nvblox
+RUN apt-get update && \
+    apt-get install -y \
+        ros-jazzy-isaac-ros-nvblox 
 EOF
 ```
 Im /etc/isaac-ros-cli/docker folder sollte sich nun eure Datei befinden. Wir builden nun (Dies nimmt einiges an Zeit in anspruch)
