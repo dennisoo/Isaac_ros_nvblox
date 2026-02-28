@@ -119,13 +119,11 @@ sudo apt-get update
 
 ```
 k="/usr/share/keyrings/nvidia-isaac-ros.gpg"
-curl -fsSL https://isaac.download.nvidia.com/isaac-ros/repos.key 
-    | sudo gpg --dearmor \
+curl -fsSL https://isaac.download.nvidia.com/isaac-ros/repos.key | sudo gpg --dearmor \
     | sudo tee -a $k > /dev/null
 f="/etc/apt/sources.list.d/nvidia-isaac-ros.list"
 sudo touch $f
-s="deb [signed-by=$k] https://isaac.download.nvidia.com/isaac-ros/release-4.0 "
-s="${s}noble main"
+s="deb [signed-by=$k] https://isaac.download.nvidia.com/isaac-ros/release-4.2 noble main"
 grep -qxF "$s" $f || echo "$s" | sudo tee -a $f
 
 sudo apt-get update
@@ -155,6 +153,7 @@ Installiert abhängigkeiten:
 
 ```
 sudo apt-get update && sudo apt-get install -y --no-install-recommends \
+   ca-certificates \
    curl \
    gnupg2
 ```
@@ -162,11 +161,10 @@ sudo apt-get update && sudo apt-get install -y --no-install-recommends \
 Konfiguiriert das Production repository:
 
 ```
-curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey \
-  | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
-  && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list \
-  | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' \
-  | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+  && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+    sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
 ```
 
 Updated die packages aus dem repo:
@@ -178,12 +176,12 @@ sudo apt-get update
 und installiert NVIDIA Container Toolkit packages:
 
 ```
-export NVIDIA_CONTAINER_TOOLKIT_VERSION=1.18.1-1
-sudo apt-get install -y \
-    nvidia-container-toolkit=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
-    nvidia-container-toolkit-base=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
-    libnvidia-container-tools=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
-    libnvidia-container1=${NVIDIA_CONTAINER_TOOLKIT_VERSION}
+export NVIDIA_CONTAINER_TOOLKIT_VERSION=1.18.2-1
+  sudo apt-get install -y \
+      nvidia-container-toolkit=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
+      nvidia-container-toolkit-base=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
+      libnvidia-container-tools=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
+      libnvidia-container1=${NVIDIA_CONTAINER_TOOLKIT_VERSION}
 ```
 
 Konfiguriert den Docker:
