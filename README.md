@@ -425,20 +425,14 @@ Also wenn ihr den Nvidia cli ros container habt, müsst ihr folgendes tun:
    ```bash
    source scripts/start_dino.sh
    ```
-
-3. Versionen downgraden aufgrund von konflikten:
-   ```bash
-   pip3 install --break-system-packages 'supervision==0.18.0'
-   pip install --force-reinstall --break-system-packages "numpy<2"
-   ```
-4. Wenn ihr eine Aufnahme machen wollt (um die pipleine vorzubereiten tut dies, das skript ist aber nur dafür da, falls bereits eine unsegmentierte Bag (die point bag) vorhanden ist (output ist die semantic bag)
+3. Wenn ihr eine Aufnahme machen wollt (um die pipleine vorzubereiten tut dies, das skript ist aber nur dafür da, falls bereits eine unsegmentierte Bag (die point bag) vorhanden ist (output ist die semantic bag)
     ```bash
     chmod +x scripts/preprocess_semantic_bag.sh
      ```
      ```bash
      ./scripts/preprocess_semantic_bag.sh \
-     /workspaces/isaac_ros-dev/bags/tugbot_slam_bag_point \
-     /workspaces/isaac_ros-dev/bags/tugbot_semantic_bag
+     /workspaces/isaac_ros-dev/bags/my_rosbag_20260202_185908 \ #input
+     /workspaces/isaac_ros-dev/bags/tiago_semantic_bag #output
      ```
 So jetzt runnen (sam/dino geht mesh noch nicht richtig liegt evtl. an rosbag, schaut das ihr die rosbag natürlich am richtigen path habt.):
 
