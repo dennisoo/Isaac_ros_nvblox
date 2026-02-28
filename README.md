@@ -288,7 +288,7 @@ PACKAGE_NAME="isaac_ros_nvblox"
 NGC_RESOURCE="isaac_ros_nvblox_assets"
 NGC_FILENAME="quickstart.tar.gz"
 MAJOR_VERSION=4
-MINOR_VERSION=0
+MINOR_VERSION=2
 VERSION_REQ_URL="https://catalog.ngc.nvidia.com/api/resources/versions?orgName=$NGC_ORG&teamName=$NGC_TEAM&name=$NGC_RESOURCE&isPublic=true&pageNumber=0&pageSize=100&sortOrder=CREATED_DATE_DESC"
 AVAILABLE_VERSIONS=$(curl -s \
     -H "Accept: application/json" "$VERSION_REQ_URL")
@@ -325,28 +325,25 @@ docker stop isaac_ros_dev_container
 erstellt den config folder:
 
 ```
-sudo mkdir -p ~/.config/isaac-ros-cli
-```
-
-Habt ihr keine Rechte gebt euch vorher den config folder.
-
-```
-#ersetzt euren username mit dem Namen den ihr bei user_name@username vor dem @ habt
-sudo chown -R euren_username:euren_username ~/.config
+mkdir -p ~/.config/isaac-ros-cli
 ```
 
 Erstellt hier nun manuell eine config.yaml der Inhalt sieht folgendermaßen aus:
 
 ```
+cat <<EOF > ~/.config/isaac-ros-cli/config.yaml
 docker:
   image:
     additional_image_keys:
       - user_pkgs
+EOF
 ```
 
-Erstellt in dem Verzeichnis auch mal eine Dockerfile.user\_pkgs die müssen wir dann aber noch in den Richtigen Ordner rüberkopieren, die Datei sieht wie folgt aus:
+Wir erstellen nun eine dockerfile zum builden.
 
 ```
+sudo mkdir -p /etc/isaac-ros-cli/docker
+sudo tee /etc/isaac-ros-cli/docker/Dockerfile.user_pkgs > /dev/null <<EOF
 ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
 
@@ -357,14 +354,8 @@ RUN sudo apt-get update && \
     sudo apt-get install -y ros-jazzy-isaac-ros-nvblox && \
     rosdep update && \
     rosdep install isaac_ros_nvblox
+EOF
 ```
-
-Nun kopieren wir die Datei rüber
-
-```
-sudo cp Dockerfile.user_pkgs /etc/isaac-ros-cli/docker/
-```
-
 Im /etc/isaac-ros-cli/docker folder sollte sich nun eure Datei befinden. Wir builden nun (Dies nimmt einiges an Zeit in anspruch)
 
 ```
