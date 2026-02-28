@@ -26,6 +26,7 @@ echo "  3) SAM ViT-H (Slowest - Best Quality)"
 echo ""
 read -p "Your choice [1-3]: " choice
 
+
 if [ "$choice" == "3" ]; then
     MODEL_TYPE="vit_h"
     PLAY_RATE="0.05"
