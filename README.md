@@ -409,7 +409,7 @@ git config --global user.email "deine@email.com"
 ```
 ## Informationen
 Mesh Objekte werden in den meshes Ordner von den Skripts geladen.
-Jegliche Rosbags, die ihr nutzen wollt, sollten bitte ind den bags Ordner.
+Jegliche Rosbags, die ihr nutzen wollt, sollten bitte in den bags Ordner.
 
 
 ## DINO+SAM Setup
