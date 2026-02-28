@@ -388,6 +388,28 @@ Wenn ihr irgendwann nochmal in den docker wollt (wenn ihr draußen seid), müsst
 isaac-ros activate
 ```
 
+## Repo Pullen:
+```
+cd ~/workspaces/isaac_ros-dev
+git clone https://github.com/dennisoo/Isaac_ros_nvblox.git temp
+mv temp/* .
+mv temp/.* . 2>/dev/null
+rm -rf temp
+mkdir -p bags meshes
+```
+Bekommt ihr eine Fehlermeldung, so liegt dies an eurer gitconfig, ändert diese.
+# .gitconfig ist bei installation oft fälschlicherweise ein Verzeichnis – löschen und neu erstellen
+# Passt natürlich eure namen noch an.
+```
+rm -rf /home/denni/.gitconfig
+git config --global user.name "DeinName"
+git config --global user.email "deine@email.com"
+```
+## Informationen
+Mesh Objekte werden in den meshes Ordner von den Skripts geladen.
+Jegliche Rosbags, die ihr nutzen wollt, sollten bitte ind den bags Ordner.
+
+
 ## DINO+SAM Setup
 
 Also wenn ihr den Nvidia cli ros container habt, müsst ihr folgendes tun:
@@ -416,11 +438,6 @@ Also wenn ihr den Nvidia cli ros container habt, müsst ihr folgendes tun:
      /workspaces/isaac_ros-dev/bags/tugbot_slam_bag_point \
      /workspaces/isaac_ros-dev/bags/tugbot_semantic_bag
      ```
-## Weitere Ordner
-Erstellt noch im workspace Ordner einen bags Ordner.
-Nun erstellt einen meshes Ordner, in dem am Ende die gespeichterten glb Mesh files landen sollen.
-## Pipeline ausführen
-
 So jetzt runnen (sam/dino geht mesh noch nicht richtig liegt evtl. an rosbag, schaut das ihr die rosbag natürlich am richtigen path habt.):
 
 ```bash
