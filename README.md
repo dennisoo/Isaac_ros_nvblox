@@ -398,7 +398,9 @@ rm -rf temp
 mkdir -p bags meshes
 ```
 Bekommt ihr eine Fehlermeldung, so liegt dies an eurer gitconfig, ändert diese.
-.gitconfig ist bei installation oft fälschlicherweise ein Verzeichnis – löschen und neu erstellen
+
+.gitconfig ist bei installation oft fälschlicherweise ein Verzeichnis – löschen und neu erstellen.
+
 Passt natürlich eure namen noch an.
 ```
 rm -rf /home/denni/.gitconfig
