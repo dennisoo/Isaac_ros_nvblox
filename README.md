@@ -348,7 +348,7 @@ Wir erstellen nun eine dockerfile zum builden.
 sudo mkdir -p /etc/isaac-ros-cli/docker
 sudo tee /etc/isaac-ros-cli/docker/Dockerfile.user_pkgs > /dev/null <<EOF
 ARG BASE_IMAGE
-FROM ${BASE_IMAGE}
+FROM \${BASE_IMAGE}
 
 ENV ISAAC_ROS_WS=/workspaces/isaac_ros-dev
 ENV DEBIAN_FRONTEND=noninteractive
