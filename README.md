@@ -431,8 +431,8 @@ Also wenn ihr den Nvidia cli ros container habt, müsst ihr folgendes tun:
      ```
      ```bash
      ./scripts/preprocess_semantic_bag.sh \
-     /workspaces/isaac_ros-dev/bags/my_rosbag_20260202_185908 \ #input
-     /workspaces/isaac_ros-dev/bags/tiago_semantic_bag #output
+      /workspaces/isaac_ros-dev/bags/my_rosbag_20260202_185908 \
+      /workspaces/isaac_ros-dev/bags/tiago_semantic_bag
      ```
 So jetzt runnen (sam/dino geht mesh noch nicht richtig liegt evtl. an rosbag, schaut das ihr die rosbag natürlich am richtigen path habt.):
 
