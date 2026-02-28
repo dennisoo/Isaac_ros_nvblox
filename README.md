@@ -432,7 +432,7 @@ Once you have the NVIDIA CLI ROS container, follow these steps:
    pip3 install --break-system-packages 'supervision==0.18.0'
    pip install --force-reinstall --break-system-packages "numpy<2"
    ```
-4. Wenn ihr eine Aufnahme machen wollt (um die pipleine vorzubereiten tut dies, das skript ist aber nur dafür da, falls bereits eine unsegmentierte Bag (die point bag) vorhanden ist (output ist die semantic bag)
+4. If you want to make a recording (to prepare the pipeline, do this, but the script is only there if an unsegmented bag (the point bag) already exists (output is the semantic bag)
     ```bash
     chmod +x scripts/preprocess_semantic_bag.sh
      ```
@@ -441,13 +441,12 @@ Once you have the NVIDIA CLI ROS container, follow these steps:
      /workspaces/isaac_ros-dev/bags/tugbot_slam_bag_point \
      /workspaces/isaac_ros-dev/bags/tugbot_semantic_bag
      ```
-## Weitere Ordner
-Erstellt noch im workspace Ordner einen bags Ordner.
-Nun erstellt einen meshes Ordner, in dem am Ende die gespeichterten glb Mesh files landen sollen.
-## Pipeline ausführen
+## Additional folders
+Create a bags folder in the workspace folder.
+Now create a meshes folder, where the saved glb mesh files will end up.
+## Run pipeline
 
-So jetzt runnen (sam/dino geht mesh noch nicht richtig liegt evtl. an rosbag, schaut das ihr die rosbag natürlich am richtigen path habt.):
-
+Now run (sam/dino mesh is not working properly yet, possibly due to rosbag; make sure you have rosbag in the correct path):
 ```bash
 ros2 launch my_dino_package semantic_pipeline.launch.py   bag_path:=/workspaces/isaac_ros-dev/bags/tugbot_semantic_bag_test/   rate:=5
 ```
