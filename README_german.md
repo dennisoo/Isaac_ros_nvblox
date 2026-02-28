@@ -1,43 +1,43 @@
 # Info
-This Git repo is used for the PSE project: "Incremental Semantic Mapping of Dynamic Indoor Environments". It attempts to create a labelled 3D environment from ROS2 data streams.
+This Git-Repo is used for the PSE project: "Incremental Semantic Mapping of Dynamic Indoor Enviornments". It tries to create a labelled 3D enviornment from ROS2-Data Streams. 
 
-This guide was finalized on 28.02.2026. If NVIDIA updates their download paths or changes the installation process, this guide may become outdated. In case of installation issues, please refer to the official NVIDIA documentation: https://nvidia-isaac-ros.github.io/getting_started/index.html. We are currently using Container Version 4.2.
+Diser Guide wurde finalisiert am 28.02.2026, updatet NVIDIA ihre Downloadpaths / verändert die Installation, so ist es nicht unwahrscheinlich, dass dieser Guide nichtmehr aktuell ist. Bitte schaut euch in dem fall, dass ihr Installationsprobleme habt, die offizielle nvidia Dokumentation https://nvidia-isaac-ros.github.io/getting_started/index.html an. Aktuell nutzen wir die Container Version 4.2
 
 # Setup
 ## WSL
-Run the following in PowerShell (Administrator) and follow the Windows instructions:
+Führe in der Powershell (Administrator) folgendes aus und folge den Anweisungen von Windows:
 
 ```
 wsl --install
 ```
 
 ## Docker
-Go to https://www.docker.com/ and install the AMD64 version. Then restart your computer.
+Gehe zu https://www.docker.com/ und installiere die AMD64 version. Starte anschließend deinen Rechner neu.
 
 
 # Getting Started with ROS
-## Foreword
-What are we doing?
-We are following this tutorial: https://nvidia-isaac-ros.github.io/getting_started/index.html
-The content of this document follows the tutorial and presents it in a simplified manner.
+## Vorwort
+Was machen wir?
+Wir folgen folgendem Tutroial: https://nvidia-isaac-ros.github.io/getting_started/index.html
+Der Inhalt dieses Dokuments folgt diesem Tutorial, und gibt den Inhalt in vereinfachter weise wieder.
 
-## Prerequisites
+## Vorraussetzungen
 ### Hardware
-**Storage:** 32+ GB
-**GPU:** (Quote from NVIDIA) 'Ampere or higher NVIDIA GPU Architecture with 8 GB RAM or higher'
+**Speicherplatz:** 32+ GB
+**GPU:** (Zitat Nvidia) 'Ampere or higher NVIDIA GPU Architecture with 8 GB RAM or higher'
 
 ### Software
 **Ubuntu 24.04**
-**NVIDIA Driver 580**
+**Nvidia Driver 580**
 **CUDA Version 13.0+**
-Use the app https://www.nvidia.com/de-at/software/nvidia-app/ to update (and restart afterwards, of course).
-Open the Windows terminal and enter the following command:
+Nutzt die App https://www.nvidia.com/de-at/software/nvidia-app/ zum Updaten (Anschließend natürlich neustarten)
+Geht ins Windows-Terminal und gebt folgenden Befehl ein
 
 ```
 nvidia-smi
 ```
 
-The output should look roughly like this (with more info that has been omitted here):
+Der Output sollte ungefähr so aussehen (Natürlich mit noch mehr infos die ich hier ausgelassen habe)
 
 ```
 Fri Dec 26 02:43:33 2025
@@ -46,13 +46,13 @@ Fri Dec 26 02:43:33 2025
 +-------------------------------------------------------------+
 ```
 
-You can check your Ubuntu version in the Ubuntu terminal with the following command:
+Eure Ubuntu version könnt ihr wie folgt im Ubuntu terminal überprüfen, nutzt folgenden Befehl
 
 ```
 lsb_release -a
 ```
 
-The output should look roughly like this:
+Der Output sollte ungefähr so aus sehen:
 
 ```
 No LSB modules are available.
@@ -62,8 +62,8 @@ Release:        24.04
 Codename:       noble
 ```
 
-## Creating a Workspace
-To create a ROS 2 workspace, enter the following command in your *WSL* terminal:
+## Einen Workspace erstellen
+Um einen ROS 2 Workspace zu erstellen, müsst ihr folgenden Befehl in eurem *WSL* terminal eingeben:
 
 ```
 mkdir -p  ~/workspaces/isaac_ros-dev/src
@@ -71,8 +71,8 @@ echo 'export ISAAC_ROS_WS="${ISAAC_ROS_WS:-${HOME}/workspaces/isaac_ros-dev/}"' 
 source ~/.bashrc
 ```
 
-Now we need to set up our Isaac ROS Apt repository.
-Set the locale on your WSL system to UTF-8 by running the following:
+Nun müssen wir unser Isaac Ros Apt Repsitory einstellen. 
+Setzt den locale auf eurem WSL System zu UTF-8 indem ihr folgendes ausführt:
 
 ```
 locale  # check for UTF-8
@@ -83,7 +83,7 @@ export LANG=en_US.UTF-8
 locale  # verify settings
 ```
 
-At the end, your locale command output should look like this:
+Am ende sollte euer locale befehl so aussehen:
 
 ```
 user@Username:~$ locale
@@ -105,7 +105,7 @@ LC_ALL=
 user@Username:~$
 ```
 
-Install dependencies:
+Installiert dependecies:
 
 ```
 sudo apt update && sudo apt install curl gnupg
@@ -113,7 +113,7 @@ sudo apt install software-properties-common
 sudo add-apt-repository universe
 ```
 
-Now source the Isaac ROS repository, but update first:
+Nun Sourcen wie das Isaac Ros Repository, aber erst updaten:
 
 ```
 sudo apt-get update
@@ -131,27 +131,27 @@ grep -qxF "$s" $f || echo "$s" | sudo tee -a $f
 sudo apt-get update
 ```
 
-## Initializing the Isaac ROS CLI
-First, install python3-pip:
+## Die Isaac RSO CLI initialisieren
+Installiert erstmal pyhton3-pip:
 
 ```
 sudo apt install python3-pip
 ```
 
-Install dependencies:
+Installiert abhängigkeiten:
 
 ```
 pip install termcolor --break-system-packages
 ```
 
-Install the Isaac ROS CLI:
+Installiert die Isaac ROS CLI:
 
 ```
 sudo apt-get install isaac-ros-cli
 ```
 
-Now we install the NVIDIA Container Toolkit.
-Install dependencies:
+Nun installieren wir das NVIDIA Container Toolkit:
+Installiert abhängigkeiten:
 
 ```
 sudo apt-get update && sudo apt-get install -y --no-install-recommends \
@@ -160,7 +160,7 @@ sudo apt-get update && sudo apt-get install -y --no-install-recommends \
    gnupg2
 ```
 
-Configure the production repository:
+Konfiguiriert das Production repository:
 
 ```
 curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
@@ -169,13 +169,13 @@ curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dear
     sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
 ```
 
-Update packages from the repository:
+Updated die packages aus dem repo:
 
 ```
 sudo apt-get update
 ```
 
-And install the NVIDIA Container Toolkit packages:
+und installiert NVIDIA Container Toolkit packages:
 
 ```
 export NVIDIA_CONTAINER_TOOLKIT_VERSION=1.18.2-1
@@ -186,47 +186,47 @@ export NVIDIA_CONTAINER_TOOLKIT_VERSION=1.18.2-1
       libnvidia-container1=${NVIDIA_CONTAINER_TOOLKIT_VERSION}
 ```
 
-Configure Docker:
+Konfiguriert den Docker:
 
 ```
 sudo nvidia-ctk runtime configure --runtime=docker
 ```
 
-Then restart it:
+Startet ihn anschließend neu:
 
 ```
 sudo systemctl daemon-reload && sudo systemctl restart docker
 ```
 
-Now initialize the ROS CLI:
+Initialisiert nun die ROS CLI:
 
 ```
 sudo isaac-ros init docker
 ```
 
-Start the Docker container with:
+startet nun den docker mit:
 
 ```
 isaac-ros activate
 ```
 
-Test if ros2 works with:
+Testes ob ros2 geht mit:
 
 ```
 ros2
 ```
 
-If `isaac-ros activate` does not work, you may need to add yourself to the docker group:
+Klappt isaac-ros activate nicht müsst ihr euch evtl noch zum docker hinzufügen.
 
 ```
 sudo usermod -aG docker $USER 
 ```
 
-If the command works, the output should look roughly like this:
+Wenn der befehl klappt sieht 21:38 19/01/2026dies ungefähr wie folgt aus:
 
 ```
 user@Username:~ isaac-ros activate
-# ---Some warnings---
+# ---Einige Warnungen---
 admin@Username:/workspaces/isaac_ros-dev$ ros2
 usage: ros2 [-h] [--use-python-default-buffering] Call ros2 <command> -h for more detailed usage. ...
 
@@ -260,7 +260,7 @@ Commands:
   Call ros2 <command> -h for more detailed usage.
 ```
 
-You can leave the Docker container with the following command:
+Den Docker könnt ihr mit folgendem Befehl verlassen:
 
 ```
 exit
@@ -268,19 +268,20 @@ exit
 
 
 # Packages
-## Foreword
-If you have reached this point, ros2 should be running inside the Isaac Docker container. Now we want to install some additional packages that are necessary for our project.
+## Vorwort
+Wenn ihr hier angekommen seid, sollte ros2 im isaac docker Laufen. Nun wollen wir noch einige
+Packages Installieren, die für unser Projekt notwendig sind.
 
 ## Nvblox
-We now want to install Nvblox for mesh generation. We follow the quickstart guide:
+Wir wollen nun Nvblox für die mesh generierung installieren. Wir folgen dem Quickstarte guide
 https://nvidia-isaac-ros.github.io/repositories_and_packages/isaac_ros_nvblox/index.html
-Make sure you are currently **not** inside the Docker container (i.e. you have exited it). Make sure the required libraries are installed:
+Stellt sicher das ihr aktuell nicht im Docker seid. (exited also) Stellt sicher das die libaries installiert sind:
 
 ```
 sudo apt-get install -y curl jq tar
 ```
 
-Now we need to download the assets — this will take some time:
+nun müssen wir die assets downloaden dies nimmt einiges an Zeit in anspruch:
 
 ```
 NGC_ORG="nvidia"
@@ -316,23 +317,23 @@ versions/$LATEST_VERSION_ID/files/$NGC_FILENAME" && \
 fi
 ```
 
-Since we don't want to reinstall everything every time, we need to configure a few things. For this, we modify the Dockerfile config. Since the CLI is fairly new, the official documentation is somewhat unclear here. However, I believe I've found some simple steps.
-First, stop your container:
+Da wir eigentlich incht immer wieder neu installieren wollen, müssen wir ein paar sachen Konfigurieren. Hierzu modifizieren wir die dockerfile config. Da die CLI wohl recht neu ist, ist die Offizielle Dokumentation hier etwas uneindeutig. Ich meine aber einige einfache Schritte gefunden zu haben.
+Stoppt hierfür euren container:
 
 ```
 docker stop isaac_ros_dev_container
 ```
 
-Create the config folder:
+erstellt den config folder:
 
 ```
 mkdir -p ~/.config/isaac-ros-cli
 ```
-If you have permission issues, grant yourself the rights:
+Habt ihr Probleme mit rechten, gebt euch diese:
 ```
 sudo chown -R $USER:$USER ~/.config
 ```
-Now manually create a config.yaml with the following content:
+Erstellt hier nun manuell eine config.yaml der Inhalt sieht folgendermaßen aus:
 
 ```
 cat <<EOF > ~/.config/isaac-ros-cli/config.yaml
@@ -343,7 +344,7 @@ docker:
 EOF
 ```
 
-We now create a Dockerfile for building:
+Wir erstellen nun eine dockerfile zum builden.
 
 ```
 sudo mkdir -p /etc/isaac-ros-cli/docker
@@ -359,17 +360,17 @@ RUN apt-get update && \
         ros-jazzy-isaac-ros-nvblox 
 EOF
 ```
-Your file should now be in the `/etc/isaac-ros-cli/docker` folder. Now build (this will take some time):
+Im /etc/isaac-ros-cli/docker folder sollte sich nun eure Datei befinden. Wir builden nun (Dies nimmt einiges an Zeit in anspruch)
 
 ```
 isaac-ros activate --build-local
 ```
 
-You should now be inside the Docker container. Verify that the nvblox packages are available:
+Ihr solltet nun im Docker sein, überprüft nun ob die nvblox packages vorhanden sind:
 
 ```
 ros2 pkg list | grep nvblox
-#The output should look roughly like this: 
+#Der Output sollte ungefaehr so aussehen: 
 admin@AnimeEye:/workspaces/isaac_ros-dev$ ros2 pkg list | grep nvblox
 isaac_ros_nvblox
 nvblox_examples_bringup
@@ -383,13 +384,13 @@ nvblox_rviz_plugin
 admin@AnimeEye:/workspaces/isaac_ros-dev$
 ```
 
-If you want to re-enter the Docker container later (after exiting), simply use the command (without --build-local):
+Wenn ihr irgendwann nochmal in den docker wollt (wenn ihr draußen seid), müsst ihr nur den Befehl nutzen (ohhne --build-local)
 
 ```
 isaac-ros activate
 ```
 
-## Cloning the Repo
+## Repo Pullen:
 ```
 cd ~/workspaces/isaac_ros-dev
 git clone https://github.com/dennisoo/Isaac_ros_nvblox.git temp
@@ -398,35 +399,35 @@ mv temp/.* . 2>/dev/null
 rm -rf temp
 mkdir -p bags meshes
 ```
-If you get an error, it may be due to your gitconfig. Modify it accordingly.
+Bekommt ihr eine Fehlermeldung, so liegt dies an eurer gitconfig, ändert diese.
 
-The .gitconfig is often mistakenly a directory after installation — delete it and recreate it.
+.gitconfig ist bei installation oft fälschlicherweise ein Verzeichnis – löschen und neu erstellen.
 
-Adjust your name and email accordingly:
+Passt natürlich eure namen noch an.
 ```
 rm -rf /home/denni/.gitconfig
-git config --global user.name "YourName"
-git config --global user.email "your@email.com"
+git config --global user.name "DeinName"
+git config --global user.email "deine@email.com"
 ```
-## Information
-Mesh objects are saved to the meshes folder by the scripts.
-Any rosbags you want to use should be placed in the bags folder.
+## Informationen
+Mesh Objekte werden in den meshes Ordner von den Skripts geladen.
+Jegliche Rosbags, die ihr nutzen wollt, sollten bitte in den bags Ordner.
 
 
 ## DINO+SAM Setup
 
-Once you have the NVIDIA CLI ROS container, follow these steps:
+Also wenn ihr den Nvidia cli ros container habt, müsst ihr folgendes tun:
 
-1. Enter the Docker container:
+1. Geht in den docker:
    ```bash
    isaac-ros activate
    ```
 
-2. Source SAM/DINO and build the package:
+2. Dann sourcen sam dino holen und package builden:
    ```bash
    source scripts/start_dino.sh
    ```
-3. If you want to preprocess a recording (to prepare the pipeline), do the following. This script is only needed if you already have an unsegmented bag (input) and want to produce a semantic bag (output):
+3. Wenn ihr eine Aufnahme machen wollt (um die pipleine vorzubereiten tut dies, das skript ist aber nur dafür da, falls bereits eine unsegmentierte Bag (input) vorhanden ist (output ist die semantic bag)
     ```bash
     chmod +x scripts/preprocess_semantic_bag.sh
      ```
@@ -437,25 +438,25 @@ Once you have the NVIDIA CLI ROS container, follow these steps:
      ```
 
 
-Now run (SAM/DINO works, mesh may not work correctly yet — possibly due to the rosbag. Make sure your rosbag is at the correct path):
+So jetzt runnen (sam/dino geht mesh noch nicht richtig liegt evtl. an rosbag, schaut das ihr die rosbag natürlich am richtigen path habt.):
 
 ```bash
 ros2 launch my_dino_package tiagoProNvblox.launch.py   bag_path:=/workspaces/isaac_ros-dev/bags/tiago_semantic_bag   rate:=1
 ```
-
-If you change anything in the scripts, always rebuild:
+```
+Wenn ihr was am skript ändert immer neu builden
 ```bash
 colcon build --packages-select my_dino_package && source install/setup.bash
 ```
 
-If you don't run the DINO install script, you need to manually install pip for the Tiago Pro launch file with nvblox (due to the newer NVIDIA ROS version):
+Wenn ihr nicht das dino install script runned, müsst ihr dank der neun NVIDIA ROS version Manuell noch pip installieren für die tiago pro launch file mit nvblox. 
 ```bash
 colcon build --packages-select my_dino_package && source install/setup.bash && sudo apt-get install -y python3-pip
 ```
 
 ## Unity
-If you want to view the mesh in Unity, use the LoadGLB.cs file in the scripts folder. To add it to Unity, do the following:
+Möchte man das mesh in Unity betrachten, so erfolgt dies über die LOADGLB.cs file im scripts Ordner. Wollt ihr dies zu Unity hinzufügen, so müsst ihr folgendes tun.
 
-Window --> Package Management --> Package Manager. Click the plus on the left --> Install Package from git URL, then paste the URL: https://github.com/Siccity/GLTFUtility
+Window --> Package Management --> Package Manager. Links auf das Plus --> Install Package from git url, nun die url einfügen: https://github.com/Siccity/GLTFUtility
 
-Now drag the script into the Assets folder, and from there drag it into the Scene. Then adjust the path in the script to point to your mesh file, and start Unity. The mesh should be imported within a few seconds. You can also start Unity ahead of time before the script runs — the mesh will be automatically imported into Unity after processing is complete.
+Nun das script in den Assets Ordner ziehen. Und von dort in die Scene ziehen. Nun noch im Skript den Path zum Path vom Mesh anpassen, und dann Unity starten, das mesh sollte nun innerhalb von ein paar sekunden importiert werden. Ihr könnt nun Unity schon im vorhinein runnen, bevor das skript läuft, das mesh wird dann nach der Verarbeitung automatisch in Unity importiert.

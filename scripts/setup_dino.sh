@@ -1,39 +1,64 @@
 #!/bin/bash
 # setup_dino.sh - Installs dependencies incl. MobileSAM & GPU Fixes
 
+
+#gitconfig fix - redirect HOME so git never touches the mounted /home/admin/.gitconfig
+export HOME=/tmp/fakehome
+mkdir -p "$HOME"
+git config --global user.name "admin"
+git config --global user.email "admin@localhost"
 set -e
 
-echo "Installing Python dependencies..."
+SETUP_MARKER="/tmp/.dino_setup_done"
+if [ -f "$SETUP_MARKER" ]; then
+    echo "Setup already completed (marker found). Skipping."
+    echo "Delete $SETUP_MARKER to force reinstall."
+    exit 0
+fi
+
+# Helper: only install if missing or wrong version
+pkg_ok() {
+    python3 -c "import $1" 2>/dev/null
+}
+pkg_ver_ok() {
+    python3 -c "import $1; assert $1.__version__=='$2'" 2>/dev/null
+}
 
 # Define PIP command with break-system-packages for Docker
+sudo apt install -y python3-pip
 PIP="pip3 install --break-system-packages"
 
 # 1. Update pip
 $PIP --upgrade pip
 
-# 2. Basic dependencies
-echo "Installing basic packages..."
-$PIP numpy opencv-python pillow pyyaml
+# 2. Transformers
+pkg_ver_ok transformers 4.36.2 || $PIP transformers==4.36.2
 
-# 3. Segment Anything (Standard)
-echo "Installing Segment Anything (Standard)..."
-$PIP segment-anything
+# 3. Basic dependencies (only install if missing, don't upgrade CUDA deps)
+echo "Checking basic packages..."
+pkg_ok numpy || $PIP "numpy<2.0.0"
+pkg_ok cv2 || $PIP opencv-python
+pkg_ok PIL || $PIP pillow
+pkg_ok yaml || $PIP pyyaml
 
-# 4. MobileSAM (Fast & Lightweight)
-echo "Installing MobileSAM..."
-$PIP git+https://github.com/ChaoningZhang/MobileSAM.git
+# 4. Segment Anything (Standard)
+pkg_ok segment_anything || { echo "Installing Segment Anything..."; $PIP segment-anything; }
 
-# 5. Supervision (Pinned version for compatibility)
-echo "Installing Supervision..."
-$PIP supervision==0.18.0
+# 5. MobileSAM (Fast & Lightweight)
+pkg_ok mobile_sam || { echo "Installing MobileSAM..."; $PIP git+https://github.com/ChaoningZhang/MobileSAM.git; }
 
-# 6. Grounding DINO
-echo "Installing Grounding DINO..."
+# 6. Supervision (Pinned version for compatibility)
+pkg_ver_ok supervision 0.18.0 || { echo "Installing Supervision 0.18.0..."; $PIP supervision==0.18.0; }
 
-# Try pre-built wheel first (faster/easier)
-if $PIP groundingdino-py 2>/dev/null; then
-    echo "Installed groundingdino-py successfully."
+# 7. Grounding DINO
+echo "Checking Grounding DINO..."
+if python3 -c "from groundingdino.util.inference import load_model" 2>/dev/null; then
+    echo "GroundingDINO already installed. ✓"
 else
+    # Try pre-built wheel first (faster/easier)
+    if $PIP groundingdino-py 2>/dev/null; then
+        echo "Installed groundingdino-py successfully."
+    else
     echo "groundingdino-py not available, installing from source WITHOUT CUDA compilation..."
     
     # Clone repo to temp dir
@@ -48,6 +73,7 @@ else
     
     # Cleanup
     rm -rf "$TEMP_DIR"
+fi
 fi
 
 # 7. Verify Installation
@@ -80,4 +106,6 @@ except ImportError as e:
     exit(1)
 EOF
 
+# Mark setup as done
+touch "$SETUP_MARKER"
 echo "Setup complete!"  
