@@ -327,7 +327,10 @@ erstellt den config folder:
 ```
 mkdir -p ~/.config/isaac-ros-cli
 ```
-
+Habt ihr Probleme mit rechten, gebt euch diese:
+```
+sudo chown -R $USER:$USER ~/.config
+```
 Erstellt hier nun manuell eine config.yaml der Inhalt sieht folgendermaßen aus:
 
 ```
