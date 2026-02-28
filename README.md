@@ -425,7 +425,7 @@ Also wenn ihr den Nvidia cli ros container habt, müsst ihr folgendes tun:
    ```bash
    source scripts/start_dino.sh
    ```
-3. Wenn ihr eine Aufnahme machen wollt (um die pipleine vorzubereiten tut dies, das skript ist aber nur dafür da, falls bereits eine unsegmentierte Bag (die point bag) vorhanden ist (output ist die semantic bag)
+3. Wenn ihr eine Aufnahme machen wollt (um die pipleine vorzubereiten tut dies, das skript ist aber nur dafür da, falls bereits eine unsegmentierte Bag (input) vorhanden ist (output ist die semantic bag)
     ```bash
     chmod +x scripts/preprocess_semantic_bag.sh
      ```
@@ -437,7 +437,7 @@ Also wenn ihr den Nvidia cli ros container habt, müsst ihr folgendes tun:
 So jetzt runnen (sam/dino geht mesh noch nicht richtig liegt evtl. an rosbag, schaut das ihr die rosbag natürlich am richtigen path habt.):
 
 ```bash
-ros2 launch my_dino_package semantic_pipeline.launch.py   bag_path:=/workspaces/isaac_ros-dev/bags/tugbot_semantic_bag_test/   rate:=5
+ros2 launch my_dino_package semantic_pipeline.launch.py   bag_path:=/workspaces/isaac_ros-dev/bags/tugbot_semantic_bag_test/   rate:=1
 ```
 ```
 Wenn ihr was am skript ändert immer neu builden
