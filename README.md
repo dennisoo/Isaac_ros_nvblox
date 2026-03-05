@@ -426,13 +426,7 @@ Once you have the NVIDIA CLI ROS container, follow these steps:
    ```bash
    source scripts/start_dino.sh
    ```
-
-3. Versionen downgraden aufgrund von konflikten:
-   ```bash
-   pip3 install --break-system-packages 'supervision==0.18.0'
-   pip install --force-reinstall --break-system-packages "numpy<2"
-   ```
-4. If you want to make a recording (to prepare the pipeline, do this, but the script is only there if an unsegmented bag (the point bag) already exists (output is the semantic bag)
+3. If you want to make a recording (to prepare the pipeline, do this, but the script is only there if an unsegmented bag (the point bag) already exists (output is the semantic bag)
     ```bash
     chmod +x scripts/preprocess_semantic_bag.sh
      ```
