@@ -177,7 +177,7 @@ The mesh generation can be viewed in real time using **RViz**. To do this:
 3. **Set the correct fixed frame:**
    - In the **Global Options** section (left panel, top), set **Fixed Frame** to `map` (or whatever your `global_frame` is set to in the config).
 
-> **Tip:** If you don't see a mesh building up, check the terminal output for errors. Common issues include missing TF data or mismatched topic names. You can also verify that data is flowing with `ros2 topic hz /nvblox_node/mesh_marker`.
+> **Tip:** If you don't see a mesh building up, check the terminal output for errors. Common issues include missing TF data or mismatched topic names.
 
 For visualization in Unity, please refer to the Unity section in the [README.md](README.md).
 
