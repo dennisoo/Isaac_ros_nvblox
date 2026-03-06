@@ -68,20 +68,6 @@ def generate_launch_description():
         default_value='/workspaces/isaac_ros-dev/meshes/semantic_tiago_mesh.glb',
         description='Output mesh path (.glb)'
     )
-    # Static Tf from torso_base_link to torso_lift_link
-    torso_base_to_lift = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='torso_base_to_lift',
-        arguments=[
-            '--frame-id', 'torso_base_link',
-            '--child-frame-id', 'torso_lift_link',
-            '--x', '0', '--y', '0', '--z', '0.9',
-            '--qx', '0', '--qy', '0', '--qz', '0', '--qw', '1',
-            '--ros-args', '-p', 'use_sim_time:=true'
-        ],
-        output='screen'
-    )
     nvblox_container = ComposableNodeContainer(
         name='nvblox_container',
         namespace='',
