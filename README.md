@@ -439,7 +439,10 @@ Once you have the NVIDIA CLI ROS container, follow these steps:
 
 Now run (sam/dino mesh is not working properly yet, possibly due to rosbag; make sure you have rosbag in the correct path):
 ```bash
-ros2 launch my_dino_package semantic_pipeline.launch.py   bag_path:=/workspaces/isaac_ros-dev/bags/tugbot_semantic_bag_test/   rate:=5
+ros2 launch my_dino_package tiagoProNvblox.launch.py \
+  bag_path:=/workspaces/isaac_ros-dev/bags/tugbot_semantic_bag_test/ \
+  rate:=1 \
+  output_mesh:=/workspaces/isaac_ros-dev/meshes/semantic_tiago_mesh.glb
 ```
 
 If you change anything in the scripts, always rebuild:
