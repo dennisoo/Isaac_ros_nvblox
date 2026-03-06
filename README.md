@@ -449,7 +449,7 @@ colcon build --packages-select my_dino_package && source install/setup.bash
 
 If you don't run the DINO install script, you need to manually install pip for the Tiago Pro launch file with nvblox (due to the newer NVIDIA ROS version):
 ```bash
-colcon build --packages-select my_dino_package && source install/setup.bash && sudo apt-get install -y python3-pip
+colcon build --packages-select my_dino_package && source install/setup.bash && sudo apt-get install -y python3-pip && pip install trimesh --break-system-packages
 ```
 
 ## Unity
