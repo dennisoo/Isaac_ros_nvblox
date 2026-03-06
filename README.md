@@ -435,9 +435,6 @@ Once you have the NVIDIA CLI ROS container, follow these steps:
      /workspaces/isaac_ros-dev/bags/tugbot_slam_bag_point \
      /workspaces/isaac_ros-dev/bags/tugbot_semantic_bag
      ```
-## Additional folders
-Create a bags folder in the workspace folder.
-Now create a meshes folder, where the saved glb mesh files will end up.
 ## Run pipeline
 
 Now run (sam/dino mesh is not working properly yet, possibly due to rosbag; make sure you have rosbag in the correct path):
