@@ -98,10 +98,6 @@ def generate_launch_description():
                 remappings=[
                     ('camera_0/depth/image', '/head_front_camera/depth/image_rect_raw'),
                     ('camera_0/depth/camera_info', '/head_front_camera/depth/camera_info'),
-                    #('camera_0/color/image', '/head_front_camera/color/image_raw'),
-                    #('camera_0/color/camera_info', '/head_front_camera/color/camera_info'),
-
-                    # We are not using segmentation for now
                     ('camera_0/color/image', '/semantic/image_rgb8'),
                     ('camera_0/color/camera_info', '/semantic/camera_info'),
                     ('pointcloud', '/merged_cloud'),
@@ -118,7 +114,6 @@ def generate_launch_description():
             LaunchConfiguration('bag_path'),
             '--clock',
             '--rate', LaunchConfiguration('rate'),
-            # Added semantic topics for preprocessed bag
         
         ],
         output='screen',
@@ -135,9 +130,7 @@ def generate_launch_description():
         bag_path_arg,
         rate_arg,
         output_mesh_arg,
-        # Bag player starts first to publish /clock
         bag_player,
         TimerAction(period=1.0, actions=[nvblox_container]),
-        # Processing (currently disabled)
         save_mesh_on_exit
     ])
