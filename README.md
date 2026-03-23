@@ -427,7 +427,7 @@ Once you have the NVIDIA CLI ROS container, follow these steps:
    source scripts/start_dino.sh
    ```
 
-3. Versionen downgraden aufgrund von konflikten:
+3. Downgrading versions due to conflicts:
    ```bash
    pip3 install --break-system-packages 'supervision==0.18.0'
    pip install --force-reinstall --break-system-packages "numpy<2"
