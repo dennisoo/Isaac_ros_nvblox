@@ -126,7 +126,7 @@ if np.any(update_mask):
     confidence_map[update_mask] = score
 ```
 
-This simple but effective logic completely eliminates flickering. A highly confident, small object (like a laptop) will punch perfectly through a large, lower-confidence background object (like a desk), regardless of which order they are processed in.
+This simple but effective logic drastically reduces flickering. A highly confident, small object (like a laptop) will punch perfectly through a large, lower-confidence background object (like a desk), regardless of which order they are processed in.
 
 ### Timestamp Synchronization
 There is one more critical detail: Nvblox uses a strict `TimeSynchronizer` to match our semantic 2D images with the incoming Depth images. If the timestamps are off by even a millisecond, Nvblox drops the frame.
