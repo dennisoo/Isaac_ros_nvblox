@@ -83,7 +83,7 @@ When tuning your parameters, you must consider:
     <td><img src="images/bad_environment.png" width="400"></td>
   </tr>
 </table>
-On the left the environment was perfect for object dection thats why everything was perfectly recognized. While on the right, the parameters weren't optimized.
+On the left the environment was perfect for object dection thats why everything was perfectly recognized. While on the right, the parameters weren't optimized for this specific environment.
 
 ### Tuning Detection Sensitivity (Thresholds)
 
