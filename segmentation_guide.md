@@ -77,6 +77,14 @@ When tuning your parameters, you must consider:
 * Lighting and contrast levels: Dark or washed-out images make it significantly harder for DINO to detect object edges.
 * Object types, density, and scale: A room cluttered with hundreds of overlapping items requires different thresholds than an empty hallway.
 
+<table>
+  <tr>
+    <td><img src="images/good_environment.png" width="400"></td>
+    <td><img src="images/bad_environment.png" width="400"></td>
+  </tr>
+</table>
+On the left the environment was perfect for object dection thats why everything was perfectly recognized. While on the right, the parameters weren't optimized.
+
 ### Tuning Detection Sensitivity (Thresholds)
 
 While the `semantic_classes.yaml` file tells the pipeline *what* to look for, the threshold parameters tell it *how strict* it should be when looking. 
