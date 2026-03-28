@@ -82,16 +82,16 @@ semantic_classes:
 ```
 When adding new classes, keep these two rules in mind:
 
-* 1. The **`id` field: This integer is published to the /semantic/image_mono8 topic. It is crucial that these IDs map correctly to whatever your downstream mapping tool (Nvblox) expects. For example two different objects can't have the same ID.
+* 1. The `id` field: This integer is published to the /semantic/image_mono8 topic. It is crucial that these IDs map correctly to whatever your downstream mapping tool (Nvblox) expects. For example two different objects can't have the same ID.
 
-* 2. The **`color` field: This is an RGB array used to paint the /semantic/image_rgb8 topic. It makes debugging in RViz much easier when every object has a distinct, hardcoded color.
+* 2. The `color` field: This is an RGB array used to paint the /semantic/image_rgb8 topic. It makes debugging in RViz much easier when every object has a distinct, hardcoded color.
 
 ### Dynamic Auto-Prompting
 You might wonder how GroundingDINO knows what to search for if we only define it in a YAML file.
 
-During initialization, **`dino_node.py` parses this YAML file and extracts all the class names (the keys). It then automatically concatenates them using a dot separator (which DINO requires) to build the text prompt.
+During initialization, `dino_node.py` parses this YAML file and extracts all the class names (the keys). It then automatically concatenates them using a dot separator (which DINO requires) to build the text prompt.
 
-For example, if your YAML contains **`person`, **`chair`, and **`laptop`, the node generates the prompt **`"person . chair . laptop"` on the fly. This ensures that your detection model and your color mappings are never out of sync.
+For example, if your YAML contains `person`, `chair`, and `laptop`, the node generates the prompt `"person . chair . laptop"` on the fly. This ensures that your detection model and your color mappings are never out of sync.
 
 ## 4. Core Features & Logic: The Confidence Map
 
@@ -129,40 +129,10 @@ if np.any(update_mask):
 This simple but effective logic completely eliminates flickering. A highly confident, small object (like a laptop) will punch perfectly through a large, lower-confidence background object (like a desk), regardless of which order they are processed in.
 
 ### Timestamp Synchronization
-There is one more critical detail: Nvblox uses a strict **`TimeSynchronizer` to match our semantic 2D images with the incoming Depth images. If the timestamps are off by even a millisecond, Nvblox drops the frame.
+There is one more critical detail: Nvblox uses a strict `TimeSynchronizer` to match our semantic 2D images with the incoming Depth images. If the timestamps are off by even a millisecond, Nvblox drops the frame.
 
-To guarantee perfect alignment, our node meticulously copies the exact ROS header (including the nanosecond **`stamp`) from the incoming raw image directly onto our outgoing semantic images.
+To guarantee perfect alignment, our node meticulously copies the exact ROS header (including the nanosecond `stamp`) from the incoming raw image directly onto our outgoing semantic images.
 
-## 5. Preprocessing & Performance (Best Practices)
-
-Running heavy AI models like GroundingDINO and SAM requires significant GPU resources. This creates a specific timing challenge when building a 3D map with Nvblox.
-
-### The Latency Bottleneck
-Typically, a robot's RGB-D camera publishes frames at 30 FPS (one frame every ~33ms). However, running a full DINO + SAM inference pipeline might take around 200ms per frame on a standard GPU. 
-
-If you attempt to run the pipeline in real-time, the ROS 2 message queues will fill up, and the system will start dropping semantic frames to keep up. 
-This is a fatal problem for Nvblox: its internal `TimeSynchronizer` requires the depth image and the semantic image to arrive with identically matched timestamps. If the semantic image is dropped, Nvblox cannot integrate that frame, leading to missing data or uncolored "ghost" artifacts in the 3D mesh.
-
-### The "Slow Motion" Solution
-To guarantee a perfect 1:1 match between depth frames and semantic masks, we strongly recommend an offline preprocessing step. Instead of running the pipeline live, we process the raw sensor bag in "slow motion" and record a new, perfectly synchronized bag.
-
-We provide a script for this: `preprocess_semantic_bag.sh`.
-
-Under the hood, this script plays the original ROS bag at a drastically reduced playback rate (e.g., 10% speed). This gives the GPU ample time to process every single image without dropping a single frame:
-
-```bash
-# Example of what happens inside the script:
-ros2 bag play original_bag --clock --rate 0.1
-```
-
-Gemini hat gesagt
-Hier ist der fünfte Teil für deinen Guide. Dieser Abschnitt ist besonders wichtig für die Nutzer eures Repos, da hier der häufigste Fehler (Asynchronität durch zu langsame GPUs) erklärt und behoben wird.
-
-Ich habe den Stil wieder genau wie in den vorherigen Teilen gehalten: klar, professionell und mit konkreten Konsolen-Befehlen, damit die Nutzer genau wissen, was sie tun müssen.
-
-Kopier das einfach als nächsten Block in deine README.md:
-
-Markdown
 ## 5. Preprocessing & Performance (Best Practices)
 
 Running heavy AI models like GroundingDINO and SAM requires significant GPU resources. This creates a specific timing challenge when building a 3D map with Nvblox.
@@ -185,7 +155,7 @@ Under the hood, this script plays the original ROS bag at a drastically reduced 
 ros2 bag play original_bag --clock --rate 0.1
 ```
 
-Once the script finishes, you will have a new "Semantic Bag" containing the original depth data alongside the fully computed, perfectly synced **`/semantic/image_mono8` and **`/semantic/image_rgb8 topics`. You can then feed this preprocessed bag into Nvblox at full speed.
+Once the script finishes, you will have a new "Semantic Bag" containing the original depth data alongside the fully computed, perfectly synced `/semantic/image_mono8` and `/semantic/image_rgb8 topics`. You can then feed this preprocessed bag into Nvblox at full speed.
 
 Verifying the Preprocessing
 After creating your semantic bag, you could always verify that the preprocessing was successful. You can do this by checking the message counts:
