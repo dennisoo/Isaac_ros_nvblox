@@ -21,6 +21,29 @@ Once the image is processed by the AI models, the node publishes two distinct se
 * `/semantic/image_mono8`: A 1-channel grayscale image. Instead of color intensity, each pixel value represents a specific **Class ID** (e.g., `1` for Person, `2` for Chair). This is the mathematical input used by Nvblox for the 3D semantic reconstruction.
 * `/semantic/image_rgb8`: A 3-channel color image where each class is painted in its designated RGB color. This topic is not used for mapping, but purely for human-readable visualization (e.g., in RViz or Foxglove) and debugging.
 
+```mermaid
+graph TD
+    classDef input fill:#e1f5fe,stroke:#01579b;
+    classDef ai fill:#e8f5e9,stroke:#2e7d32;
+    classDef output fill:#fff3e0,stroke:#e65100;
+
+    A[(ROS 2 Bag)] -->|/image_raw| B(dino_node.py)
+    A -->|/camera_info| B
+    
+    subgraph AI Pipeline
+    B --> C[GroundingDINO]
+    C -->|Bounding Boxes| D[Segment Anything]
+    D -->|Pixel Masks| E[Confidence Arbitration]
+    end
+    
+    E -->|/semantic/image_mono8| F[(Nvblox 3D Mapping)]
+    E -->|/semantic/image_rgb8| G[RViz Visualization]
+    
+    class A input;
+    class B,C,D,E ai;
+    class F,G output;
+```
+
 ## 2. The AI Models (DINO & SAM)
 
 Our pipeline relies on a dual-model approach to extract meaning from the camera feed. Instead of trying to do everything with one monolithic neural network, we split the job into two specialized steps: detection and segmentation.
@@ -37,6 +60,9 @@ Bounding boxes are a beginning, but they are just rectangles. If a person is sit
 
 This is where SAM comes in. We pass DINO's bounding boxes directly to SAM as hints. SAM looks inside each box, separates the foreground object from the background, and outputs a pixel-perfect mask.
 
+![DINO and SAM Segmentation Pipeline](images/dino_sam.jpg)
+*Left: Raw RGB | Middle: GroundingDINO Bounding Boxes | Right: SAM Pixel Masks*
+
 ### Model Selection (`model_type`)
 Running these models is computationally expensive. To give you control over the tradeoff between speed and quality, the node exposes a `model_type` parameter. 
 
@@ -44,6 +70,12 @@ You can set this in your launch file or via the preprocessing script to choose w
 * **`mobile` (Default):** Loads MobileSAM (`vit_t`). This is highly optimized and runs significantly faster. It is strongly recommended for development, testing, and machines with less VRAM.
 * **`vit_b`:** Loads the standard SAM Base model. This is the sweet spot. It offers a great balance between processing speed and mask quality.
 * **`vit_h`:** Loads the SAM Huge model. This is very slow (50 times slower than mobile) and will require you to have a good enough GPU, but it guarantees the highest possible precision for your segmentation masks.
+
+Segmentation settings will need environment specific tuning. A configuration that works perfectly in a brightly lit simulation might fail in a dark, real-world basement.
+When tuning your parameters, you must consider:
+* Resolution: Higher resolutions yield better masks but demand more computation.
+* Lighting and contrast levels: Dark or washed-out images make it significantly harder for DINO to detect object edges.
+* Object types, density, and scale: A room cluttered with hundreds of overlapping items requires different thresholds than an empty hallway.
 
 ### Tuning Detection Sensitivity (Thresholds)
 
@@ -149,6 +181,26 @@ To guarantee a perfect 1:1 match between depth frames and semantic masks, we str
 We provide a script for this: `preprocess_semantic_bag.sh`.
 
 Under the hood, this script plays the original ROS bag at a drastically reduced playback rate (e.g., 10% speed). This gives the GPU ample time to process every single image without dropping a single frame:
+
+```mermaid
+sequenceDiagram
+    participant Camera (30fps)
+    participant GPU (Slow)
+    participant Nvblox
+    
+    Note over Camera,Nvblox: Scenario 1: Real-Time (Frames Dropped)
+    Camera->>GPU: Frame 1
+    GPU-->>Nvblox: Processing (200ms)...
+    Camera-xGPU: Frame 2 (Dropped)
+    Camera-xGPU: Frame 3 (Dropped)
+    GPU->>Nvblox: Semantic Frame 1 arrives
+    
+    Note over Camera,Nvblox: Scenario 2: Preprocessing at --rate 0.1
+    Camera->>GPU: Frame 1
+    GPU->>Nvblox: Semantic Frame 1
+    Camera->>GPU: Frame 2
+    GPU->>Nvblox: Semantic Frame 2
+```
 
 ```bash
 # Example of what happens inside the script:
