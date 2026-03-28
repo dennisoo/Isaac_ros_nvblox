@@ -60,7 +60,7 @@ Bounding boxes are a beginning, but they are just rectangles. If a person is sit
 
 This is where SAM comes in. We pass DINO's bounding boxes directly to SAM as hints. SAM looks inside each box, separates the foreground object from the background, and outputs a pixel-perfect mask.
 
-![DINO and SAM Segmentation Pipeline](images/dino_sam.jpg)
+![DINO and SAM Segmentation Pipeline](images/dino_sam.png)
 *Left: Raw RGB | Middle: GroundingDINO Bounding Boxes | Right: SAM Pixel Masks*
 
 ### Model Selection (`model_type`)
@@ -184,22 +184,34 @@ Under the hood, this script plays the original ROS bag at a drastically reduced 
 
 ```mermaid
 sequenceDiagram
-    participant Camera (30fps)
-    participant GPU (Slow)
-    participant Nvblox
-    
-    Note over Camera,Nvblox: Scenario 1: Real-Time (Frames Dropped)
-    Camera->>GPU: Frame 1
-    GPU-->>Nvblox: Processing (200ms)...
-    Camera-xGPU: Frame 2 (Dropped)
-    Camera-xGPU: Frame 3 (Dropped)
-    GPU->>Nvblox: Semantic Frame 1 arrives
-    
-    Note over Camera,Nvblox: Scenario 2: Preprocessing at --rate 0.1
-    Camera->>GPU: Frame 1
-    GPU->>Nvblox: Semantic Frame 1
-    Camera->>GPU: Frame 2
-    GPU->>Nvblox: Semantic Frame 2
+    participant C as Camera (30fps)
+    participant G as GPU (Slow)
+    participant N as Nvblox
+
+    %% --- Scenario 1 ---
+    rect rgb(255, 235, 238)
+    Note over C,N: Scenario 1: Real-Time (Frames Dropped)
+    C->>G: Frame 1 (0ms)
+    activate G
+    C--xG: Frame 2 (33ms) - Dropped
+    C--xG: Frame 3 (66ms) - Dropped
+    C--xG: Frame 4 (100ms) - Dropped
+    G-->>N: Semantic Frame 1 (200ms)
+    deactivate G
+    end
+
+    %% --- Scenario 2 ---
+    rect rgb(232, 245, 233)
+    Note over C,N: Scenario 2: Preprocessing at --rate 0.1
+    C->>G: Frame 1 (0ms)
+    activate G
+    G-->>N: Semantic Frame 1 (200ms)
+    deactivate G
+    C->>G: Frame 2 (333ms)
+    activate G
+    G-->>N: Semantic Frame 2 (533ms)
+    deactivate G
+    end
 ```
 
 ```bash
