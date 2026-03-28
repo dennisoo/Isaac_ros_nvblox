@@ -23,9 +23,9 @@ Once the image is processed by the AI models, the node publishes two distinct se
 
 ```mermaid
 graph TD
-    classDef input fill:#e1f5fe,stroke:#01579b;
-    classDef ai fill:#e8f5e9,stroke:#2e7d32;
-    classDef output fill:#fff3e0,stroke:#e65100;
+    classDef input fill:#e1f5fe,stroke:#01579b,color:#000000;
+    classDef ai fill:#e8f5e9,stroke:#2e7d32,color:#000000;
+    classDef output fill:#fff3e0,stroke:#e65100,color:#000000;
 
     A[(ROS 2 Bag)] -->|/image_raw| B(dino_node.py)
     A -->|/camera_info| B
@@ -197,7 +197,7 @@ sequenceDiagram
     participant N as Nvblox
 
     %% --- Scenario 1 ---
-    rect rgb(255, 235, 238)
+    rect rgba(255, 50, 50, 0.15)
     Note over C,N: Scenario 1: Real-Time (Frames Dropped)
     C->>G: Frame 1 (0ms)
     activate G
@@ -209,7 +209,7 @@ sequenceDiagram
     end
 
     %% --- Scenario 2 ---
-    rect rgb(232, 245, 233)
+    rect rgba(50, 255, 50, 0.15)
     Note over C,N: Scenario 2: Preprocessing at --rate 0.1
     C->>G: Frame 1 (0ms)
     activate G
