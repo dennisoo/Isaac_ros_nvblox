@@ -26,7 +26,6 @@ echo "-------------------------------------------"
 echo "1/4: Running base setup..."
 ./scripts/setup_dino.sh || echo "Base setup warning (ignoring)..."
 
-# --- AUTOMATIC FIXES START ---
 echo "-------------------------------------------"
 echo "2/4: FORCING CRITICAL FIXES..."
 
@@ -88,8 +87,6 @@ fi
 # Verify NumPy version
 echo "Verifying NumPy version:"
 python3 -c "import numpy; print(f'   -> Installed: {numpy.__version__}')"
-
-# --- AUTOMATIC FIXES END ---
 
 # 3. Download Weights
 echo "-------------------------------------------"

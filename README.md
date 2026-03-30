@@ -464,6 +464,24 @@ colcon build --packages-select my_dino_package && source install/setup.bash && s
 ## Unity
 If you want to view the mesh in Unity, use the LoadGLB.cs file in the scripts folder. To add it to Unity, do the following:
 
-Window --> Package Management --> Package Manager. Click the plus on the left --> Install Package from git URL, then paste the URL: https://github.com/Siccity/GLTFUtility
+Window --> Package Management --> Package Manager. Click the plus on the left --> Install Package from git URL, then paste the URL: https://github.com/Siccity/GLTFUtility.git
 
 Now drag the script into the Assets folder, and from there drag it into the Scene. Then adjust the path in the script to point to your mesh file, and start Unity. The mesh should be imported within a few seconds. You can also start Unity ahead of time before the script runs — the mesh will be automatically imported into Unity after processing is complete.
+<img src = images/unityImport.png>
+
+## Documentation
+We have provided documentation for nvblox, segmentation and an Evaluation of our Work.
+
+Common abbreviations used in this project:
+
+- ROS: Robot Operating System
+- RGBD: Red, Green, Blue + Depth
+- LiDAR: Light Detection and Ranging
+- GLB file: GL Transmission Format Binary (efficient 3D format)
+- YAML: YAML Ain't Markup Language (configuration file format)
+
+Guides:
+
+- nvblox: [nvblox_guide.md](nvblox_guide.md)
+- segmentation: [segmentation_guide.md](segmentation_guide.md)
+- evaluation: [evaluation.md](evaluation.md)

@@ -18,12 +18,11 @@ if user_site not in sys.path:
 from groundingdino.util.inference import load_model, predict
 import groundingdino.datasets.transforms as T
 
-# Try MobileSAM first, fallback to regular SAM
 from segment_anything import sam_model_registry, SamPredictor
 
 import supervision as sv
 
-# PATHS (Weights bleiben statisch, Config wird dynamisch geladen)
+# PATHS
 DATA_DIR = "/workspaces/isaac_ros-dev/data/weights"
 
 DINO_CONFIG = os.path.join(DATA_DIR, "GroundingDINO_SwinT_OGC.py")
@@ -35,24 +34,23 @@ class SemanticDinoNode(Node):
     def __init__(self):
         super().__init__('semantic_dino_node')
         
-        # --- LOAD SEMANTIC CONFIGURATION DYNAMICALLY ---
-        # Sucht den Pfad zum installierten Paket 'my_dino_package'
+        # load semantic class configuration with dynamic path resolution
         try:
             package_share_directory = get_package_share_directory('my_dino_package')
             semantic_config_path = os.path.join(package_share_directory, 'config', 'semantic_classes.yaml')
             self.get_logger().info(f"Loading semantic config from: {semantic_config_path}")
         except Exception as e:
             self.get_logger().error(f"Could not find package 'my_dino_package'. Error: {e}")
-            # Fallback path (optional, falls lokal entwickelt wird)
+            # Fallback path
             semantic_config_path = "/workspaces/isaac_ros-dev/src/Isaac_ros_nvblox/src/my_dino_package/config/semantic_classes.yaml"
 
         self.semantic_config = self.load_semantic_config(semantic_config_path)
         
-        # --- PARSE CONFIG ---
+        # PARSE CONFIG
         self.class_to_id = {name: info['id'] for name, info in self.semantic_config['semantic_classes'].items()}
         # Colors in YAML are RGB, but OpenCV uses BGR - convert them!
         self.class_to_color = {
-            name: [info['color'][2], info['color'][1], info['color'][0]]  # RGB -> BGR
+            name: [info['color'][2], info['color'][1], info['color'][0]]
             for name, info in self.semantic_config['semantic_classes'].items()
         }
         
@@ -128,11 +126,11 @@ class SemanticDinoNode(Node):
         sam_name = "SAM-ViT-H"
         self.get_logger().info(f"Using {sam_name} on {self.target_device}")
         
-        # --- ANNOTATORS (supervision 0.18.0 API) ---
+        # ANNOTATORS (supervision 0.18.0 API)
         self.box_annotator = sv.BoxAnnotator()
         self.mask_annotator = sv.MaskAnnotator()
         
-        # --- ROS SUBSCRIPTIONS ---
+        # ROS SUBSCRIPTIONS
         self.sub_rgb = self.create_subscription(
             Image, 'image', self.callback, qos_profile_sensor_data
         )
@@ -140,7 +138,7 @@ class SemanticDinoNode(Node):
             CameraInfo, 'camera_info', self.camera_info_callback, qos_profile_sensor_data
         )
         
-        # --- ROS PUBLISHERS ---
+        # ROS PUBLISHERS
         self.pub_overlay = self.create_publisher(Image, '/dino_sam/result', 10)
         self.pub_semantic_mono8 = self.create_publisher(Image, '/semantic/image_mono8', 10)
         self.pub_semantic_rgb8 = self.create_publisher(Image, '/semantic/image_rgb8', 10)
@@ -177,7 +175,7 @@ class SemanticDinoNode(Node):
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
             prompt = self.get_parameter('text_prompt').value
             
-            # --- GROUNDING DINO ---
+            # GROUNDING DINO
             transform = T.Compose([
                 T.RandomResize([800], max_size=1333),
                 T.ToTensor(),
@@ -199,7 +197,7 @@ class SemanticDinoNode(Node):
                 self.pub_overlay.publish(self.bridge.cv2_to_imgmsg(cv_image, encoding="bgr8"))
                 return
 
-            # --- SAM ---
+            # SAM
             self.sam_predictor.set_image(cv_image)
             H, W, _ = cv_image.shape
             
@@ -218,7 +216,7 @@ class SemanticDinoNode(Node):
                 multimask_output=False,
             )
             
-            # --- SEMANTIC LABELING ---
+            # SEMANTIC LABELING
             semantic_mono8, semantic_rgb8, class_ids = self.create_semantic_images(
                 masks.cpu().numpy().squeeze(1), 
                 phrases, 
@@ -227,10 +225,10 @@ class SemanticDinoNode(Node):
                 original_image=cv_image
             )
             
-            # --- PUBLISH SEMANTIC IMAGES ---
+            # PUBLISH SEMANTIC IMAGES
             self.publish_semantic_images(semantic_mono8, semantic_rgb8, msg)
             
-            # --- VISUALIZATION ---
+            # VISUALIZATION
             detections = sv.Detections(
                 xyxy=boxes_xyxy,
                 mask=masks.cpu().numpy().squeeze(1),
@@ -280,7 +278,7 @@ class SemanticDinoNode(Node):
         # Initialize with black background
         semantic_rgb8 = np.zeros((H, W, 3), dtype=np.uint8) 
         
-        # --- NEW: CONFIDENCE MAP ---
+        # CONFIDENCE MAP
         # Keeps track of the highest score per pixel to prevent overwriting
         # high-confidence detections with low-confidence noise.
         confidence_map = np.zeros((H, W), dtype=np.float32)
@@ -338,7 +336,6 @@ class SemanticDinoNode(Node):
         """Publish semantic images when no objects detected."""
         H, W, _ = original_image.shape
         empty_mono = np.zeros((H, W), dtype=np.uint8)
-        # WICHTIG: Original-Bild als RGB senden, damit nvblox Farben hat!
         self.publish_semantic_images(empty_mono, original_image, original_msg)
 
     def add_legend(self, image, phrases):

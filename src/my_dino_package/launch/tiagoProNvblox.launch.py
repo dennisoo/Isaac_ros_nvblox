@@ -93,7 +93,7 @@ def generate_launch_description():
         output='screen'
     )
     
-    # === BAG PLAYER ===
+    #BAG PLAYER
     bag_player = ExecuteProcess(
         cmd=[
             'ros2', 'bag', 'play',
