@@ -4,8 +4,7 @@
 
 set -e
 
-# --- MEMORY OPTIMIZATION FOR 8GB CARDS ---
-# Hilft gegen "CUDA out of memory" durch Fragmentierung
+# MEMORY OPTIMIZATION FOR 8GB CARDS
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 # Kill old lingering processes to free VRAM before starting
@@ -13,7 +12,7 @@ echo "Cleaning old processes..."
 pkill -f dino_nvblox_node || true
 sleep 1
 
-# --- 1. INTERACTIVE SELECTION (Model) ---
+# 1. INTERACTIVE SELECTION (Model)
 echo "=========================================="
 echo "   SEMANTIC PREPROCESSING CONFIG"
 echo "=========================================="
@@ -41,7 +40,7 @@ else
     echo "-> Selected: MobileSAM (Fast)"
 fi
 
-# --- 2. INTERACTIVE SELECTION (Threshold) ---
+# 2. INTERACTIVE SELECTION (Threshold
 echo ""
 echo "--- Step 2: Detection Sensitivity (Threshold) ---"
 echo "Select the box threshold (0.25 - 0.40):"
@@ -99,7 +98,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-# --- 3. START DINO NODE ---
+# 3. START DINO NODE
 echo "[1/3] Starting DINO/SAM node..."
 
 ros2 run my_dino_package dino_nvblox_node --ros-args \
@@ -133,7 +132,7 @@ if [ $ELAPSED -ge $TIMEOUT ]; then
     echo "Timeout waiting for DINO node. Continuing anyway..."
 fi
 
-# --- 4. START RECORDING ---
+# 4. START RECORDING
 echo "[2/3] Starting bag recording..."
 ros2 bag record -o "$OUTPUT_BAG" --all &
 
@@ -141,7 +140,7 @@ RECORD_PID=$!
 echo "Recording PID: $RECORD_PID"
 sleep 2
 
-# --- 5. PLAY BAG ---
+# 5. PLAY BAG
 echo "[3/3] Playing input bag at rate $PLAY_RATE..."
 ros2 bag play "$INPUT_BAG" --clock --rate $PLAY_RATE
 

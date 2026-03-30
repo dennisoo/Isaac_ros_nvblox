@@ -21,7 +21,6 @@ bags/
 
 # Frame files
 *.gv
-*.pdf
 
 # Mesh & map files
 *.ply
