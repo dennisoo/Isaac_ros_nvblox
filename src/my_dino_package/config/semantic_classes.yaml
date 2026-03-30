@@ -1,5 +1,4 @@
 semantic_classes:
-  # --- basic structure (important for Mapping) ---
   background:
     id: 0
     color: [0, 0, 0]
@@ -18,8 +17,6 @@ semantic_classes:
   window:
     id: 5
     color: [173, 216, 230] 
-
-  # --- lifeforms (dynamic "objects") ---
   person:
     id: 6
     color: [255, 0, 0]     
@@ -65,8 +62,6 @@ semantic_classes:
   cow:
     id: 20
     color: [218, 112, 214]
-
-  # --- objects (small) ---
   backpack:
     id: 21
     color: [238, 130, 238]
@@ -163,17 +158,15 @@ semantic_classes:
   cake:
     id: 52
     color: [250, 128, 114]
-
-  # --- furniture (Indoor) ---
   chair:
     id: 53
-    color: [255, 20, 147] # Pink
+    color: [255, 20, 147]
   couch:
     id: 54
     color: [199, 21, 133]
   potted plant:
     id: 55
-    color: [50, 205, 50]  # Grün
+    color: [50, 205, 50]
   bed:
     id: 56
     color: [219, 112, 147]
@@ -237,8 +230,6 @@ semantic_classes:
   toothbrush:
     id: 76
     color: [165, 42, 42]
-  
-  # --- EXTRA INDOOR objects (Warehouse/Office) ---
   box:
     id: 77
     color: [210, 180, 140] 
