@@ -426,13 +426,7 @@ Once you have the NVIDIA CLI ROS container, follow these steps:
    ```bash
    source scripts/start_dino.sh
    ```
-
-3. Downgrading versions due to conflicts:
-   ```bash
-   pip3 install --break-system-packages 'supervision==0.18.0'
-   pip install --force-reinstall --break-system-packages "numpy<2"
-   ```
-4. If you want to make a recording (to prepare the pipeline, do this, but the script is only there if an unsegmented bag (the point bag) already exists (output is the semantic bag)
+3. If you want to make a recording (to prepare the pipeline, do this, but the script is only there if an unsegmented bag (the point bag) already exists (output is the semantic bag)
     ```bash
     chmod +x scripts/preprocess_semantic_bag.sh
      ```
@@ -441,14 +435,14 @@ Once you have the NVIDIA CLI ROS container, follow these steps:
      /workspaces/isaac_ros-dev/bags/tugbot_slam_bag_point \
      /workspaces/isaac_ros-dev/bags/tugbot_semantic_bag
      ```
-## Additional folders
-Create a bags folder in the workspace folder.
-Now create a meshes folder, where the saved glb mesh files will end up.
 ## Run pipeline
 
 Now run (sam/dino mesh is not working properly yet, possibly due to rosbag; make sure you have rosbag in the correct path):
 ```bash
-ros2 launch my_dino_package semantic_pipeline.launch.py   bag_path:=/workspaces/isaac_ros-dev/bags/tugbot_semantic_bag_test/   rate:=5
+ros2 launch my_dino_package tiagoProNvblox.launch.py \
+  bag_path:=/workspaces/isaac_ros-dev/bags/tugbot_semantic_bag_test/ \
+  rate:=1 \
+  output_mesh:=/workspaces/isaac_ros-dev/meshes/semantic_tiago_mesh.glb
 ```
 
 If you change anything in the scripts, always rebuild:
@@ -458,7 +452,7 @@ colcon build --packages-select my_dino_package && source install/setup.bash
 
 If you don't run the DINO install script, you need to manually install pip for the Tiago Pro launch file with nvblox (due to the newer NVIDIA ROS version):
 ```bash
-colcon build --packages-select my_dino_package && source install/setup.bash && sudo apt-get install -y python3-pip
+colcon build --packages-select my_dino_package && source install/setup.bash && sudo apt-get install -y python3-pip && pip install trimesh --break-system-packages
 ```
 
 ## Unity
